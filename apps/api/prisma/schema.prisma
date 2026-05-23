@@ -1,0 +1,130 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CLIENT
+  DISPATCHER
+  ADMIN
+}
+
+enum RequestStatus {
+  DRAFT
+  SENT
+  IN_REVIEW
+  REVIEWED
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  requestsAsClient    Request[]              @relation("ClientRequests")
+  statusChangesByUser RequestStatusHistory[]
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  images       ProductImage[]
+  requestItems RequestItem[]
+
+  @@index([name])
+  @@index([code])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  urlThumb  String // ~200px
+  urlMedium String // ~600px
+  urlFull   String // ~1200px
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+model Request {
+  id         String        @id @default(cuid())
+  clientId   String
+  client     User          @relation("ClientRequests", fields: [clientId], references: [id])
+  status     RequestStatus @default(DRAFT)
+  notes      String?
+  createdAt  DateTime      @default(now())
+  sentAt     DateTime?
+  reviewedAt DateTime?
+  decidedAt  DateTime?
+  updatedAt  DateTime      @updatedAt
+
+  items   RequestItem[]
+  history RequestStatusHistory[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model RequestItem {
+  id           String   @id @default(cuid())
+  requestId    String
+  request      Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  quantity     Int
+  available    Boolean? // null = not yet reviewed
+  observations String?
+
+  @@unique([requestId, productId])
+}
+
+model RequestStatusHistory {
+  id          String         @id @default(cuid())
+  requestId   String
+  request     Request        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  fromStatus  RequestStatus?
+  toStatus    RequestStatus
+  changedById String
+  changedBy   User           @relation(fields: [changedById], references: [id])
+  notes       String?
+  changedAt   DateTime       @default(now())
+
+  @@index([requestId])
+}
