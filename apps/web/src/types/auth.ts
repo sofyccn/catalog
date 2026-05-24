@@ -1,15 +1,13 @@
 export type Role = 'CLIENT' | 'DISPATCHER' | 'ADMIN'
+export type UserStatus = 'PENDING' | 'ACTIVE' | 'REJECTED'
 
-export interface User {
+/** The local account record returned by GET /auth/me. */
+export interface Me {
   id: string
   email: string
   fullName: string
-  role: Role
+  role: Role | null
+  status: UserStatus
   active: boolean
-}
-
-export interface LoginResponse {
-  token: string
-  refreshToken: string
-  user: User
+  createdAt: string
 }

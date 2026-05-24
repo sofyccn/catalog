@@ -1,11 +1,11 @@
 import type { NextFunction, Request, RequestHandler, Response } from 'express'
 
 /**
- * Wraps an async route handler so rejected promises are forwarded to Express's
- * error handler instead of crashing the process.
+ * Wraps a route handler (sync or async) so thrown errors and rejected promises
+ * are forwarded to Express's error handler instead of crashing the process.
  */
 export const asyncHandler =
-  (fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>): RequestHandler =>
+  (fn: (req: Request, res: Response, next: NextFunction) => unknown): RequestHandler =>
   (req, res, next) => {
-    fn(req, res, next).catch(next)
+    Promise.resolve(fn(req, res, next)).catch(next)
   }
