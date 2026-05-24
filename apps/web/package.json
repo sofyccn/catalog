@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@clerk/localizations": "^4.6.8",
+    "@clerk/react": "^6.7.1",
     "@hookform/resolvers": "^5.4.0",
     "@tanstack/react-query": "^5.100.13",
     "axios": "^1.16.1",

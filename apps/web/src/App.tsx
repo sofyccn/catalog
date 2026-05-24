@@ -1,28 +1,33 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import Login from './pages/Login'
+import SignInPage from './pages/SignInPage'
+import SignUpPage from './pages/SignUpPage'
 import Dashboard from './pages/Dashboard'
-import { ProtectedRoute } from './components/ProtectedRoute'
+import AccessRequests from './pages/admin/AccessRequests'
+import { AppLayout } from './components/AppLayout'
+import { RequireRole } from './components/RequireRole'
 import { RoleRedirect } from './components/RoleRedirect'
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      {/* Clerk sign-in / sign-up (path routing needs the splat) */}
+      <Route path="/login/*" element={<SignInPage />} />
+      <Route path="/registro/*" element={<SignUpPage />} />
 
-      {/* Any authenticated user: send "/" to their role home */}
-      <Route element={<ProtectedRoute />}>
+      {/* Authenticated area — AppLayout enforces signed-in + ACTIVE status */}
+      <Route element={<AppLayout />}>
         <Route path="/" element={<RoleRedirect />} />
-      </Route>
 
-      {/* Role-gated areas (placeholder dashboards for now) */}
-      <Route element={<ProtectedRoute roles={['ADMIN']} />}>
-        <Route path="/admin" element={<Dashboard />} />
-      </Route>
-      <Route element={<ProtectedRoute roles={['DISPATCHER']} />}>
-        <Route path="/despacho" element={<Dashboard />} />
-      </Route>
-      <Route element={<ProtectedRoute roles={['CLIENT']} />}>
-        <Route path="/catalogo" element={<Dashboard />} />
+        <Route element={<RequireRole roles={['ADMIN']} />}>
+          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/solicitudes" element={<AccessRequests />} />
+        </Route>
+        <Route element={<RequireRole roles={['DISPATCHER']} />}>
+          <Route path="/despacho" element={<Dashboard />} />
+        </Route>
+        <Route element={<RequireRole roles={['CLIENT']} />}>
+          <Route path="/catalogo" element={<Dashboard />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

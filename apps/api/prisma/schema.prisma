@@ -26,15 +26,23 @@ enum RequestStatus {
   CANCELLED
 }
 
+enum UserStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
+  id           String     @id @default(cuid())
+  clerkId      String?    @unique // Clerk user id (null only for legacy seed rows)
+  email        String     @unique
+  passwordHash String? // legacy / unused under Clerk auth — drop in a later migration
   fullName     String
-  role         Role
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         Role? // assigned by an admin at approval time
+  status       UserStatus @default(PENDING)
+  active       Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   requestsAsClient    Request[]              @relation("ClientRequests")
   statusChangesByUser RequestStatusHistory[]

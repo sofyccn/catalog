@@ -1,34 +1,33 @@
-import { useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
-import { useAuthStore } from '../stores/auth'
+import { Link } from 'react-router-dom'
+import { UserButton } from '@clerk/react'
+import { ClipboardList } from 'lucide-react'
+import { useMe } from '../api/me'
 import { roleLabel } from '../lib/roles'
 
 /**
- * Week-1 placeholder landing page. Confirms the logged-in user and role, and
- * provides logout. Replaced by the real role-specific screens in later weeks.
+ * Week-1 placeholder landing page. Confirms the active user + role and provides
+ * logout (Clerk's UserButton). Replaced by role-specific screens later.
  */
 export default function Dashboard() {
-  const navigate = useNavigate()
-  const user = useAuthStore((s) => s.user)
-  const logout = useAuthStore((s) => s.logout)
-
-  const onLogout = () => {
-    logout()
-    navigate('/login', { replace: true })
-  }
+  const me = useMe()
+  const user = me.data
 
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
         <span className="text-lg font-semibold text-slate-900">Catálogo Cobo</span>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
-        >
-          <LogOut className="h-4 w-4" />
-          Cerrar sesión
-        </button>
+        <div className="flex items-center gap-4">
+          {user?.role === 'ADMIN' && (
+            <Link
+              to="/admin/solicitudes"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+            >
+              <ClipboardList className="h-4 w-4" />
+              Solicitudes de acceso
+            </Link>
+          )}
+          <UserButton />
+        </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-6 py-12">
@@ -38,7 +37,7 @@ export default function Dashboard() {
           <p className="mt-4 text-slate-600">
             Has iniciado sesión como{' '}
             <span className="font-medium text-slate-900">
-              {user ? roleLabel[user.role] : ''}
+              {user?.role ? roleLabel[user.role] : ''}
             </span>
             . Aquí irá tu panel cuando construyamos las pantallas de cada rol.
           </p>
