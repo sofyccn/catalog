@@ -6,15 +6,18 @@ import { conflict, notFound } from '../lib/errors.js'
 const listQuery = z.object({
   search: z.string().trim().optional(),
   categoryId: z.string().optional(),
+  includeInactive: z.coerce.boolean().optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(200).default(20),
 })
 
 export async function list(req: Request, res: Response) {
-  const { search, categoryId, page, limit } = listQuery.parse(req.query)
+  const { search, categoryId, includeInactive, page, limit } = listQuery.parse(req.query)
+  // Only admins may see inactive products (catalog management); everyone else sees active only.
+  const showAll = includeInactive === true && req.localUser?.role === 'ADMIN'
 
   const where = {
-    active: true,
+    ...(showAll ? {} : { active: true }),
     ...(categoryId ? { categoryId } : {}),
     ...(search
       ? {

@@ -54,3 +54,15 @@ export function useProducts(params: ProductQuery) {
     placeholderData: keepPreviousData,
   })
 }
+
+export interface ProductDetail extends Product {
+  category?: Category
+}
+
+export function useProduct(id: string | undefined) {
+  return useQuery({
+    queryKey: ['product', id],
+    enabled: !!id,
+    queryFn: async () => (await api.get<{ product: ProductDetail }>(`/products/${id}`)).data.product,
+  })
+}

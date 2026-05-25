@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { UserButton } from '@clerk/react'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, Inbox, Package } from 'lucide-react'
 import { useMe } from '../api/me'
 import { roleLabel } from '../lib/roles'
 
@@ -18,13 +18,20 @@ export default function Dashboard() {
         <span className="text-lg font-semibold text-slate-900">Catálogo Cobo</span>
         <div className="flex items-center gap-4">
           {user?.role === 'ADMIN' && (
-            <Link
-              to="/admin/solicitudes"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
-            >
-              <ClipboardList className="h-4 w-4" />
-              Solicitudes de acceso
-            </Link>
+            <>
+              <Link to="/admin/catalogo" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
+                <Package className="h-4 w-4" />
+                Catálogo
+              </Link>
+              <Link to="/despacho" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
+                <Inbox className="h-4 w-4" />
+                Pedidos
+              </Link>
+              <Link to="/admin/solicitudes" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100">
+                <ClipboardList className="h-4 w-4" />
+                Solicitudes
+              </Link>
+            </>
           )}
           <UserButton />
         </div>

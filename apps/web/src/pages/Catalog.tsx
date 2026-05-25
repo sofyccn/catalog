@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { LayoutGrid, List, Loader2, Plus, Search, X } from 'lucide-react'
 import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
+import { useNavigate } from 'react-router-dom'
 import { useCategories, useProducts, type Category, type Product } from '../api/catalog'
+import { useCart } from '../stores/cart'
 
 const PAGE_SIZE = 24
 
@@ -48,11 +50,16 @@ export default function Catalog() {
   const activeCategory = categoryId ? categoriesById.get(categoryId) : undefined
   const hasFilters = Boolean(debouncedQuery || categoryId)
 
+  const navigate = useNavigate()
+  const addToCart = useCart((s) => s.add)
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 2600)
   }
-  const onAdd = (p: Product) => showToast(`«${p.name}» — el carrito de revisión llegará pronto`)
+  const onAdd = (p: Product) => {
+    addToCart({ productId: p.id, code: p.code, name: p.name, image: p.images?.[0]?.urlThumb })
+    showToast(`«${p.name}» añadido al carrito`)
+  }
   const clearFilters = () => {
     setQuery('')
     setCategoryId(null)
@@ -149,6 +156,7 @@ export default function Catalog() {
                     product={p}
                     categoryName={categoriesById.get(p.categoryId)?.name}
                     onAdd={onAdd}
+                    onOpen={() => navigate(`/producto/${p.id}`)}
                   />
                 ))}
               </div>
@@ -160,6 +168,7 @@ export default function Catalog() {
                     product={p}
                     categoryName={categoriesById.get(p.categoryId)?.name}
                     onAdd={onAdd}
+                    onOpen={() => navigate(`/producto/${p.id}`)}
                   />
                 ))}
               </div>
@@ -360,13 +369,15 @@ interface ProductItemProps {
   product: Product
   categoryName?: string | undefined
   onAdd: (p: Product) => void
+  onOpen: () => void
 }
 
-function ProductRow({ product, categoryName, onAdd }: ProductItemProps) {
+function ProductRow({ product, categoryName, onAdd, onOpen }: ProductItemProps) {
   return (
     <div
+      onClick={onOpen}
       className="card"
-      style={{ display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: 24, padding: 18, alignItems: 'center' }}
+      style={{ display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: 24, padding: 18, alignItems: 'center', cursor: 'pointer' }}
     >
       <div style={{ width: 160, height: 120, borderRadius: 12, overflow: 'hidden' }}>
         <ProductThumb src={product.images?.[0]?.urlThumb} alt={product.name} />
@@ -383,16 +394,27 @@ function ProductRow({ product, categoryName, onAdd }: ProductItemProps) {
           </p>
         )}
       </div>
-      <button onClick={() => onAdd(product)} className="btn primary" style={{ padding: '12px 22px' }}>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onAdd(product)
+        }}
+        className="btn primary"
+        style={{ padding: '12px 22px' }}
+      >
         <Plus size={16} /> Añadir
       </button>
     </div>
   )
 }
 
-function ProductCard({ product, categoryName, onAdd }: ProductItemProps) {
+function ProductCard({ product, categoryName, onAdd, onOpen }: ProductItemProps) {
   return (
-    <div className="card" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div
+      onClick={onOpen}
+      className="card"
+      style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer' }}
+    >
       <div style={{ aspectRatio: '4 / 3', borderRadius: 10, overflow: 'hidden' }}>
         <ProductThumb src={product.images?.[0]?.urlThumb} alt={product.name} />
       </div>
@@ -402,7 +424,13 @@ function ProductCard({ product, categoryName, onAdd }: ProductItemProps) {
       </div>
       <h3 style={{ fontSize: 16 }}>{product.name}</h3>
       <div className="row" style={{ justifyContent: 'flex-end', marginTop: 'auto' }}>
-        <button onClick={() => onAdd(product)} className="btn sm primary">
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onAdd(product)
+          }}
+          className="btn sm primary"
+        >
           <Plus size={14} /> Añadir
         </button>
       </div>

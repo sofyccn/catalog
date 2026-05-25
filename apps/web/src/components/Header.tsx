@@ -1,11 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
 import { UserButton } from '@clerk/react'
+import { ShoppingCart } from 'lucide-react'
 import { KyodoLogo } from './KyodoLogo'
+import { cartCount, useCart } from '../stores/cart'
 
-/** Catalog shell header — logo + nav + Clerk user menu (design-styled). */
+/** Catalog shell header — logo + nav + cart + Clerk user menu (design-styled). */
 export function Header() {
   const { pathname } = useLocation()
-  const onCatalog = pathname.startsWith('/catalogo')
+  const count = useCart((s) => cartCount(s.lines))
 
   return (
     <header
@@ -23,24 +25,46 @@ export function Header() {
           <KyodoLogo size={42} tagline />
         </Link>
         <nav style={{ display: 'flex', gap: 4, marginLeft: 12 }}>
-          <NavPill to="/catalogo" active={onCatalog}>
+          <NavPill to="/catalogo" active={pathname.startsWith('/catalogo') || pathname.startsWith('/producto')}>
             Catálogo
           </NavPill>
-          <span
-            title="Próximamente"
-            style={{
-              padding: '8px 14px',
-              borderRadius: 999,
-              fontSize: 14,
-              fontWeight: 600,
-              color: 'var(--ink-faint)',
-              cursor: 'not-allowed',
-            }}
-          >
+          <NavPill to="/pedido" active={pathname.startsWith('/pedido')}>
             Mi pedido
-          </span>
+          </NavPill>
         </nav>
         <div style={{ flex: 1 }} />
+        <Link
+          to="/carrito"
+          className="btn ghost"
+          style={{ position: 'relative', padding: '8px 14px', borderRadius: 999 }}
+          aria-label="Carrito"
+        >
+          <ShoppingCart size={18} />
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Carrito</span>
+          {count > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                minWidth: 20,
+                height: 20,
+                padding: '0 6px',
+                background: 'var(--amber-bright)',
+                color: 'var(--ink)',
+                borderRadius: 999,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                fontWeight: 700,
+                border: '2px solid var(--bg)',
+              }}
+            >
+              {count}
+            </span>
+          )}
+        </Link>
         <UserButton />
       </div>
     </header>
