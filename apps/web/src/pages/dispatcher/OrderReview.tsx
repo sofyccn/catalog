@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, Loader2, X } from 'lucide-react'
 import { WorkerHeader, StatusTag, shortDate } from '../../components/WorkerHeader'
+import { getApiErrorMessage } from '../../lib/api'
 import {
   useCompleteReview,
   useRequestDetail,
@@ -108,10 +109,13 @@ export default function DispatcherOrderReview() {
             </div>
 
             {order.status === 'SENT' && (
-              <button onClick={() => startReview.mutate(order.id)} disabled={startReview.isPending} className="btn primary lg" style={{ padding: 14 }}>
-                {startReview.isPending ? <Loader2 className="animate-spin" size={18} /> : null}
-                Iniciar revisión
-              </button>
+              <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <button onClick={() => startReview.mutate(order.id)} disabled={startReview.isPending} className="btn primary lg" style={{ padding: 14 }}>
+                  {startReview.isPending ? <Loader2 className="animate-spin" size={18} /> : null}
+                  Iniciar revisión
+                </button>
+                {startReview.isError && <p style={{ color: 'var(--red)', fontSize: 13 }}>{getApiErrorMessage(startReview.error)}</p>}
+              </div>
             )}
 
             {editable && (
@@ -121,10 +125,16 @@ export default function DispatcherOrderReview() {
                     Te faltan <b>{pendingItems}</b> ítem(s) por marcar.
                   </p>
                 )}
-                <button onClick={() => completeReview.mutate(order.id)} disabled={completeReview.isPending} className="btn primary lg" style={{ padding: 14 }}>
+                <button
+                  onClick={() => completeReview.mutate(order.id, { onSuccess: () => navigate('/despacho') })}
+                  disabled={completeReview.isPending}
+                  className="btn primary lg"
+                  style={{ padding: 14 }}
+                >
                   {completeReview.isPending ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
                   Enviar disponibilidad al cliente
                 </button>
+                {completeReview.isError && <p style={{ color: 'var(--red)', fontSize: 13 }}>{getApiErrorMessage(completeReview.error)}</p>}
               </div>
             )}
 

@@ -16,6 +16,12 @@ export function createApp() {
   app.use(compression())
   if (env.NODE_ENV !== 'test') app.use(morgan('dev'))
   app.use(express.json())
+  // Body-less POSTs (e.g. /complete-review, /approve) leave req.body undefined;
+  // default it to {} so handlers that validate an optional body don't 400.
+  app.use((req, _res, next) => {
+    if (req.body === undefined) req.body = {}
+    next()
+  })
 
   // Parses the Clerk session from the request; getAuth(req) reads it downstream.
   app.use(clerkMiddleware())

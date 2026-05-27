@@ -71,3 +71,31 @@ export function useDeactivateCategory() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
   })
 }
+
+export function useUploadImages(productId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (files: File[]) => {
+      const fd = new FormData()
+      files.forEach((f) => fd.append('images', f))
+      return (await api.post(`/products/${productId}/images`, fd)).data
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['product', productId] })
+      qc.invalidateQueries({ queryKey: ['admin-products'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+    },
+  })
+}
+
+export function useDeleteImage(productId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (imageId: string) => (await api.delete(`/products/${productId}/images/${imageId}`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['product', productId] })
+      qc.invalidateQueries({ queryKey: ['admin-products'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+    },
+  })
+}

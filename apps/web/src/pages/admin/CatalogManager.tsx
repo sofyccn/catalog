@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, Pencil, Plus, X } from 'lucide-react'
+import { ArrowLeft, ImagePlus, Loader2, Pencil, Plus, X } from 'lucide-react'
 import { WorkerHeader } from '../../components/WorkerHeader'
 import {
   formatPrice,
@@ -8,6 +8,7 @@ import {
   useCategories,
   useEquipmentModels,
   usePartTypes,
+  useProduct,
   type Category,
   type Product,
 } from '../../api/catalog'
@@ -15,8 +16,10 @@ import {
   useAdminProducts,
   useCreateCategory,
   useDeactivateCategory,
+  useDeleteImage,
   useSaveProduct,
   useToggleProduct,
+  useUploadImages,
   type ProductInput,
 } from '../../api/admin'
 import { getApiErrorMessage } from '../../lib/api'
@@ -247,6 +250,15 @@ function ProductFormModal({ product, categories, onClose }: { product: Product |
             <label className="row" style={{ gap: 8, cursor: 'pointer', fontSize: 14 }}><input type="checkbox" checked={isNew} onChange={(e) => setIsNew(e.target.checked)} /> Nuevo</label>
             <label className="row" style={{ gap: 8, cursor: 'pointer', fontSize: 14 }}><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Activo</label>
           </div>
+
+          <div>
+            <div className="label" style={{ marginBottom: 6 }}>Imágenes</div>
+            {product ? (
+              <ImagesEditor productId={product.id} />
+            ) : (
+              <p className="muted" style={{ fontSize: 12 }}>Guarda el producto primero para poder subir imágenes.</p>
+            )}
+          </div>
         </div>
 
         {save.isError && <p style={{ color: 'var(--red)', fontSize: 13, marginTop: 12 }}>{getApiErrorMessage(save.error)}</p>}
@@ -266,6 +278,44 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <div className="label" style={{ marginBottom: 6 }}>{label}</div>
       {children}
+    </div>
+  )
+}
+
+function ImagesEditor({ productId }: { productId: string }) {
+  const detail = useProduct(productId)
+  const uploadImages = useUploadImages(productId)
+  const deleteImage = useDeleteImage(productId)
+  const images = detail.data?.images ?? []
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : []
+    if (files.length) uploadImages.mutate(files)
+    e.target.value = ''
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {images.map((img) => (
+          <div key={img.id} style={{ position: 'relative', width: 72, height: 72, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--line)' }}>
+            <img src={img.urlThumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <button
+              onClick={() => deleteImage.mutate(img.id)}
+              aria-label="Eliminar imagen"
+              style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.6)', color: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+        <label style={{ width: 72, height: 72, borderRadius: 8, border: '1.5px dashed var(--line)', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink-faint)', gap: 2 }}>
+          {uploadImages.isPending ? <Loader2 className="animate-spin" size={18} /> : <ImagePlus size={18} />}
+          <span style={{ fontSize: 10 }}>Subir</span>
+          <input type="file" accept="image/*" multiple onChange={onPick} style={{ display: 'none' }} />
+        </label>
+      </div>
+      {uploadImages.isError && <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 6 }}>{getApiErrorMessage(uploadImages.error)}</p>}
     </div>
   )
 }
