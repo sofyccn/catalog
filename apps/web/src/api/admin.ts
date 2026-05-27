@@ -19,8 +19,14 @@ export interface ProductInput {
   code: string
   name: string
   description?: string
+  price?: number
   categoryId: string
+  partTypeId?: string | null
+  brandId?: string | null
+  isCompleteUnit?: boolean
+  isNew?: boolean
   active?: boolean
+  modelIds?: string[]
 }
 
 export function useSaveProduct() {

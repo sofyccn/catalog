@@ -9,6 +9,7 @@ export const productsRouter = Router()
 productsRouter.use(asyncHandler(attachUser), requireActive)
 
 productsRouter.get('/', asyncHandler(productsController.list))
+productsRouter.get('/:id/related', asyncHandler(productsController.related))
 productsRouter.get('/:id', asyncHandler(productsController.getOne))
 
 // Mutations are admin-only.

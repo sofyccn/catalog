@@ -7,6 +7,7 @@ export interface CartLine {
   name: string
   quantity: number
   image?: string
+  price?: number
 }
 
 interface CartState {

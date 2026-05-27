@@ -27,6 +27,7 @@ export default function Cart() {
   const [delivery, setDelivery] = useState<'retiro' | 'envio'>('retiro')
 
   const units = cartCount(lines)
+  const subtotal = lines.reduce((s, l) => s + (l.price ?? 0) * l.quantity, 0)
 
   const handleSend = () => {
     const deliveryLabel = delivery === 'retiro' ? 'Retiro en local' : 'Envío a finca'
@@ -129,6 +130,9 @@ export default function Cart() {
                       {l.name}
                     </h4>
                     <span className="tag muted">{l.code}</span>
+                    {l.price != null && (
+                      <span className="muted" style={{ fontSize: 12, marginLeft: 8 }}>${l.price.toFixed(2)} c/u</span>
+                    )}
                   </div>
                   <div className="row" style={{ background: 'var(--bg-tint)', borderRadius: 999, overflow: 'hidden' }}>
                     <button onClick={() => setQty(l.productId, l.quantity - 1)} style={qtyBtn} aria-label="Menos">
@@ -163,8 +167,13 @@ export default function Cart() {
                   <span className="muted">Unidades</span>
                   <span style={{ fontWeight: 600 }}>{units}</span>
                 </div>
+                <div style={{ borderTop: '1px dashed var(--line)', margin: '12px 0' }} />
+                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600 }}>Subtotal referencia</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>${subtotal.toFixed(2)}</span>
+                </div>
                 <p className="muted" style={{ fontSize: 12, marginTop: 10, fontStyle: 'italic' }}>
-                  La disponibilidad se confirma cuando el despachador revise tu pedido.
+                  Precio de referencia. El total final se confirma cuando el despachador revise tu pedido.
                 </p>
               </div>
 

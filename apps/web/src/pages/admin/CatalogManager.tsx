@@ -1,8 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Loader2, Pencil, Plus, X } from 'lucide-react'
 import { WorkerHeader } from '../../components/WorkerHeader'
-import { useCategories, type Category, type Product } from '../../api/catalog'
+import {
+  formatPrice,
+  useBrands,
+  useCategories,
+  useEquipmentModels,
+  usePartTypes,
+  type Category,
+  type Product,
+} from '../../api/catalog'
 import {
   useAdminProducts,
   useCreateCategory,
@@ -48,10 +56,8 @@ export default function CatalogManager() {
         </div>
 
         <div className="container" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24, padding: '24px 24px 64px' }}>
-          {/* Categories */}
           <CategoriesPanel categories={categories} loading={categoriesQ.isLoading} />
 
-          {/* Products */}
           <div className="card" style={{ padding: 0, overflow: 'hidden', alignSelf: 'flex-start' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)' }}>
               <span className="label">Productos ({products.length})</span>
@@ -62,43 +68,33 @@ export default function CatalogManager() {
               </div>
             ) : (
               <>
-                <div
-                  className="label"
-                  style={{ display: 'grid', gridTemplateColumns: '110px 1fr 160px 90px 90px', gap: 12, padding: '12px 20px', borderBottom: '1.5px solid var(--line)', background: 'var(--bg-tint)' }}
-                >
+                <div className="label" style={{ display: 'grid', gridTemplateColumns: '100px 1fr 140px 120px 80px 70px 70px', gap: 12, padding: '12px 20px', borderBottom: '1.5px solid var(--line)', background: 'var(--bg-tint)' }}>
                   <span>Código</span>
                   <span>Nombre</span>
                   <span>Categoría</span>
+                  <span>Marca</span>
+                  <span style={{ textAlign: 'right' }}>Precio</span>
                   <span>Estado</span>
-                  <span style={{ textAlign: 'right' }}>Acción</span>
+                  <span style={{ textAlign: 'right' }}>Editar</span>
                 </div>
                 {products.map((p) => (
-                  <div
-                    key={p.id}
-                    style={{ display: 'grid', gridTemplateColumns: '110px 1fr 160px 90px 90px', gap: 12, padding: '12px 20px', alignItems: 'center', borderBottom: '1px solid var(--line-soft)', opacity: p.active ? 1 : 0.55 }}
-                  >
+                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '100px 1fr 140px 120px 80px 70px 70px', gap: 12, padding: '12px 20px', alignItems: 'center', borderBottom: '1px solid var(--line-soft)', opacity: p.active ? 1 : 0.55 }}>
                     <span className="tag muted" style={{ width: 'fit-content' }}>{p.code}</span>
-                    <span style={{ fontWeight: 500 }}>{p.name}</span>
+                    <span style={{ fontWeight: 500 }}>{p.name}{p.isNew && <span className="tag" style={{ marginLeft: 6, background: 'var(--amber-bright)', color: 'var(--ink)', fontSize: 9 }}>NUEVO</span>}</span>
                     <span className="muted" style={{ fontSize: 13 }}>{categoriesById.get(p.categoryId)?.name ?? '—'}</span>
+                    <span className="muted" style={{ fontSize: 13 }}>{p.brand?.name ?? '—'}</span>
+                    <span style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 600 }}>{formatPrice(p.price)}</span>
                     <span>
-                      <button
-                        onClick={() => toggleProduct.mutate({ id: p.id, active: !p.active })}
-                        className="tag"
-                        style={{ cursor: 'pointer', border: 'none', background: p.active ? 'var(--ok-tint)' : 'var(--bg-tint)', color: p.active ? 'var(--ok)' : 'var(--ink-faint)' }}
-                      >
+                      <button onClick={() => toggleProduct.mutate({ id: p.id, active: !p.active })} className="tag" style={{ cursor: 'pointer', border: 'none', background: p.active ? 'var(--ok-tint)' : 'var(--bg-tint)', color: p.active ? 'var(--ok)' : 'var(--ink-faint)' }}>
                         {p.active ? 'Activo' : 'Inactivo'}
                       </button>
                     </span>
                     <div style={{ textAlign: 'right' }}>
-                      <button className="btn ghost sm" onClick={() => setEditing(p)} aria-label="Editar">
-                        <Pencil size={14} />
-                      </button>
+                      <button className="btn ghost sm" onClick={() => setEditing(p)} aria-label="Editar"><Pencil size={14} /></button>
                     </div>
                   </div>
                 ))}
-                {products.length === 0 && (
-                  <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>Aún no hay productos.</div>
-                )}
+                {products.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>Aún no hay productos.</div>}
               </>
             )}
           </div>
@@ -106,11 +102,7 @@ export default function CatalogManager() {
       </main>
 
       {editing && (
-        <ProductFormModal
-          product={editing === 'new' ? null : editing}
-          categories={categories}
-          onClose={() => setEditing(null)}
-        />
+        <ProductFormModal product={editing === 'new' ? null : editing} categories={categories} onClose={() => setEditing(null)} />
       )}
     </div>
   )
@@ -120,30 +112,18 @@ function CategoriesPanel({ categories, loading }: { categories: Category[]; load
   const createCategory = useCreateCategory()
   const deactivateCategory = useDeactivateCategory()
   const [name, setName] = useState('')
-
   const add = () => {
     if (!name.trim()) return
     createCategory.mutate(name.trim(), { onSuccess: () => setName('') })
   }
-
   return (
     <div className="card" style={{ padding: 18, alignSelf: 'flex-start' }}>
       <span className="label">Categorías</span>
       <div style={{ display: 'flex', gap: 6, margin: '12px 0' }}>
-        <input
-          className="input"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && add()}
-          placeholder="Nueva categoría"
-        />
-        <button className="btn primary" onClick={add} disabled={createCategory.isPending} aria-label="Agregar">
-          <Plus size={16} />
-        </button>
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Nueva categoría" />
+        <button className="btn primary" onClick={add} disabled={createCategory.isPending} aria-label="Agregar"><Plus size={16} /></button>
       </div>
-      {createCategory.isError && (
-        <p style={{ color: 'var(--red)', fontSize: 12, marginBottom: 8 }}>{getApiErrorMessage(createCategory.error)}</p>
-      )}
+      {createCategory.isError && <p style={{ color: 'var(--red)', fontSize: 12, marginBottom: 8 }}>{getApiErrorMessage(createCategory.error)}</p>}
       {loading ? (
         <Loader2 className="animate-spin" size={18} style={{ color: 'var(--ink-faint)' }} />
       ) : (
@@ -151,13 +131,7 @@ function CategoriesPanel({ categories, loading }: { categories: Category[]; load
           {categories.map((c) => (
             <div key={c.id} className="row" style={{ justifyContent: 'space-between', padding: '6px 8px', borderRadius: 8 }}>
               <span style={{ fontSize: 14 }}>{c.name}</span>
-              <button
-                onClick={() => deactivateCategory.mutate(c.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', display: 'inline-flex' }}
-                aria-label="Desactivar"
-              >
-                <X size={14} />
-              </button>
+              <button onClick={() => deactivateCategory.mutate(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', display: 'inline-flex' }} aria-label="Desactivar"><X size={14} /></button>
             </div>
           ))}
           {categories.length === 0 && <span className="muted" style={{ fontSize: 13 }}>Sin categorías.</span>}
@@ -167,86 +141,119 @@ function CategoriesPanel({ categories, loading }: { categories: Category[]; load
   )
 }
 
-function ProductFormModal({
-  product,
-  categories,
-  onClose,
-}: {
-  product: Product | null
-  categories: Category[]
-  onClose: () => void
-}) {
+function ProductFormModal({ product, categories, onClose }: { product: Product | null; categories: Category[]; onClose: () => void }) {
   const save = useSaveProduct()
-  const [form, setForm] = useState<ProductInput>({
-    code: product?.code ?? '',
-    name: product?.name ?? '',
-    description: product?.description ?? '',
-    categoryId: product?.categoryId ?? categories[0]?.id ?? '',
-    active: product?.active ?? true,
-  })
+  const partTypes = usePartTypes()
+  const brands = useBrands()
 
-  const set = <K extends keyof ProductInput>(k: K, v: ProductInput[K]) => setForm((f) => ({ ...f, [k]: v }))
+  const [code, setCode] = useState(product?.code ?? '')
+  const [name, setName] = useState(product?.name ?? '')
+  const [description, setDescription] = useState(product?.description ?? '')
+  const [price, setPrice] = useState(product?.price != null ? String(product.price) : '')
+  const [categoryId, setCategoryId] = useState(product?.categoryId ?? categories[0]?.id ?? '')
+  const [partTypeId, setPartTypeId] = useState(product?.partType?.id ?? '')
+  const [brandId, setBrandId] = useState(product?.brand?.id ?? '')
+  const [isCompleteUnit, setIsCompleteUnit] = useState(product?.isCompleteUnit ?? false)
+  const [isNew, setIsNew] = useState(product?.isNew ?? false)
+  const [active, setActive] = useState(product?.active ?? true)
+  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([])
+
+  const models = useEquipmentModels(categoryId || undefined)
+
+  // Prefill selected models (match the product's compatible codes once models load).
+  const [modelsInit, setModelsInit] = useState(false)
+  useEffect(() => {
+    if (!modelsInit && product && models.data) {
+      const codes = new Set((product.compatibleModels ?? []).map((cm) => cm.model.code))
+      setSelectedModelIds(models.data.filter((m) => codes.has(m.code)).map((m) => m.id))
+      setModelsInit(true)
+    }
+  }, [modelsInit, product, models.data])
+
+  const toggleModel = (id: string) =>
+    setSelectedModelIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
 
   const submit = () => {
-    save.mutate({ id: product?.id, input: form }, { onSuccess: onClose })
+    const input: ProductInput = {
+      code: code.trim(),
+      name: name.trim(),
+      description: description.trim() || undefined,
+      price: price ? Number(price) : 0,
+      categoryId,
+      partTypeId: partTypeId || null,
+      brandId: brandId || null,
+      isCompleteUnit,
+      isNew,
+      active,
+      modelIds: selectedModelIds,
+    }
+    save.mutate({ id: product?.id, input }, { onSuccess: onClose })
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(20,30,25,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}
-    >
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: '100%', maxWidth: 480, padding: 24 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(20,30,25,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100, padding: 20, overflowY: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: '100%', maxWidth: 520, padding: 24, margin: '24px 0' }}>
         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 16 }}>
           <h2 style={{ fontSize: 22 }}>{product ? 'Editar producto' : 'Nuevo producto'}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)' }}>
-            <X size={20} />
-          </button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)' }}><X size={20} /></button>
         </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Field label="Código">
-            <input className="input" value={form.code} onChange={(e) => set('code', e.target.value)} placeholder="P0001" />
-          </Field>
-          <Field label="Nombre">
-            <input className="input" value={form.name} onChange={(e) => set('name', e.target.value)} />
-          </Field>
-          <Field label="Descripción">
-            <textarea
-              className="input"
-              rows={3}
-              value={form.description}
-              onChange={(e) => set('description', e.target.value)}
-              style={{ resize: 'vertical', fontFamily: 'inherit' }}
-            />
-          </Field>
-          <Field label="Categoría">
-            <select className="input" value={form.categoryId} onChange={(e) => set('categoryId', e.target.value)}>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Código"><input className="input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="E55" /></Field>
+            <Field label="Precio (USD)"><input className="input" type="number" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" /></Field>
+          </div>
+          <Field label="Nombre"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
+          <Field label="Descripción"><textarea className="input" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: 'vertical', fontFamily: 'inherit' }} /></Field>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Categoría">
+              <select className="input" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSelectedModelIds([]) }}>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Tipo de parte">
+              <select className="input" value={partTypeId} onChange={(e) => setPartTypeId(e.target.value)}>
+                <option value="">— Ninguno —</option>
+                {partTypes.data?.map((pt) => <option key={pt.id} value={pt.id}>{pt.name}</option>)}
+              </select>
+            </Field>
+          </div>
+          <Field label="Marca">
+            <select className="input" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+              <option value="">Genérico / Sin marca</option>
+              {brands.data?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </Field>
-          {product && (
-            <label className="row" style={{ gap: 8, cursor: 'pointer' }}>
-              <input type="checkbox" checked={form.active ?? true} onChange={(e) => set('active', e.target.checked)} />
-              <span style={{ fontSize: 14 }}>Activo (visible en el catálogo)</span>
-            </label>
-          )}
+
+          <Field label="Modelos compatibles">
+            {models.data && models.data.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 140, overflowY: 'auto' }}>
+                {models.data.map((m) => {
+                  const on = selectedModelIds.includes(m.id)
+                  return (
+                    <button key={m.id} type="button" onClick={() => toggleModel(m.id)} className={`chip ${on ? 'active' : ''}`} style={!on ? { border: '1px solid var(--line)' } : undefined}>
+                      {m.code}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <span className="faint" style={{ fontSize: 13 }}>No hay modelos para esta categoría.</span>
+            )}
+          </Field>
+
+          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+            <label className="row" style={{ gap: 8, cursor: 'pointer', fontSize: 14 }}><input type="checkbox" checked={isCompleteUnit} onChange={(e) => setIsCompleteUnit(e.target.checked)} /> Equipo completo</label>
+            <label className="row" style={{ gap: 8, cursor: 'pointer', fontSize: 14 }}><input type="checkbox" checked={isNew} onChange={(e) => setIsNew(e.target.checked)} /> Nuevo</label>
+            <label className="row" style={{ gap: 8, cursor: 'pointer', fontSize: 14 }}><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Activo</label>
+          </div>
         </div>
+
         {save.isError && <p style={{ color: 'var(--red)', fontSize: 13, marginTop: 12 }}>{getApiErrorMessage(save.error)}</p>}
         <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
-          <button className="btn ghost" onClick={onClose}>
-            Cancelar
-          </button>
-          <button
-            className="btn primary"
-            onClick={submit}
-            disabled={save.isPending || !form.code.trim() || !form.name.trim() || !form.categoryId}
-          >
-            {save.isPending ? <Loader2 className="animate-spin" size={16} /> : null}
-            Guardar
+          <button className="btn ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn primary" onClick={submit} disabled={save.isPending || !code.trim() || !name.trim() || !categoryId}>
+            {save.isPending ? <Loader2 className="animate-spin" size={16} /> : null} Guardar
           </button>
         </div>
       </div>
