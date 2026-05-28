@@ -248,8 +248,10 @@ function TerminalView({ order, onBack }: { order: OrderRequest; onBack: () => vo
     CANCELLED: { color: 'var(--ink-faint)', icon: <Ban size={36} color="white" />, title: 'Pedido cancelado', sub: 'Cancelaste este pedido.' },
   } as const
   const v = map[order.status as 'APPROVED' | 'REJECTED' | 'CANCELLED']
+  const availableCount = order.items.filter((it) => it.available === true).length
+  const units = order.items.reduce((s, it) => s + it.quantity, 0)
   return (
-    <main className="container" style={{ padding: '48px 24px', maxWidth: 580 }}>
+    <main className="container" style={{ padding: '48px 24px', maxWidth: 680 }}>
       <button onClick={onBack} className="btn ghost sm" style={{ marginBottom: 16 }}>
         <ArrowLeft size={14} /> Mis pedidos
       </button>
@@ -258,7 +260,29 @@ function TerminalView({ order, onBack }: { order: OrderRequest; onBack: () => vo
           {v.icon}
         </div>
         <h2 style={{ fontSize: 30, marginBottom: 8 }}>{v.title}</h2>
-        <p className="muted" style={{ marginBottom: 28 }}>{v.sub}</p>
+        <p className="muted" style={{ marginBottom: 12 }}>{v.sub}</p>
+        <p className="faint" style={{ fontSize: 13 }}>
+          Pedido #{order.id.slice(-8)}
+          {order.decidedAt ? ` · ${shortDate(order.decidedAt)}` : ''}
+        </p>
+      </div>
+
+      {/* Listado de productos — queda como historial de la compra */}
+      <div className="card" style={{ padding: 0, marginTop: 16 }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span className="label">Detalle del pedido</span>
+          <span className="muted" style={{ fontSize: 13 }}>
+            {order.status === 'APPROVED'
+              ? `${availableCount} de ${order.items.length} disponibles`
+              : `${order.items.length} producto${order.items.length === 1 ? '' : 's'} · ${units} unidades`}
+          </span>
+        </div>
+        {order.items.map((it, i) => (
+          <ItemRow key={it.id} item={it} reviewed last={i === order.items.length - 1} />
+        ))}
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: 20 }}>
         <button onClick={onBack} className="btn primary">Volver a mis pedidos</button>
       </div>
     </main>

@@ -27,15 +27,15 @@ export async function notifyNewOrder(requestId: string): Promise<void> {
     })
     const to = workers.map((w) => w.email).filter(Boolean)
     if (to.length === 0) return
-    await sendEmail({
-      to,
-      subject: `Nuevo pedido de ${request.client.fullName}`,
-      html: layout(
-        'Nuevo pedido recibido',
-        `${request.client.fullName} envió un pedido con ${request._count.items} producto(s). Revisa la disponibilidad y responde.`,
-        { label: 'Ver pedidos', href: `${appUrl()}/despacho` },
-      ),
-    })
+    const subject = `Nuevo pedido de ${request.client.fullName}`
+    const html = layout(
+      'Nuevo pedido recibido',
+      `${request.client.fullName} envió un pedido con ${request._count.items} producto(s). Revisa la disponibilidad y responde.`,
+      { label: 'Ver pedidos', href: `${appUrl()}/despacho` },
+    )
+    // Send per-recipient so one blocked/invalid address doesn't drop the rest
+    // (and the owner still receives while Resend is in test mode).
+    for (const email of to) await sendEmail({ to: email, subject, html })
   } catch (err) {
     console.error('[notify] notifyNewOrder:', err)
   }
