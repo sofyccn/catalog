@@ -4,6 +4,7 @@ import type { User } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import { badRequest, forbidden, notFound } from '../lib/errors.js'
 import { changeStatus } from '../services/request.service.js'
+import { notifyNewOrder, notifyProformaReady } from '../lib/notifications.js'
 
 // --- helpers -------------------------------------------------------------
 
@@ -192,6 +193,7 @@ export async function send(req: Request, res: Response) {
   const count = await prisma.requestItem.count({ where: { requestId: request.id } })
   if (count === 0) throw badRequest('El pedido está vacío')
   const updated = await changeStatus(request.id, 'SENT', u.id)
+  void notifyNewOrder(request.id) // fire-and-forget; never throws
   res.json({ request: updated })
 }
 
@@ -211,6 +213,7 @@ export async function completeReview(req: Request, res: Response) {
   const { notes } = notesSchema.parse(req.body)
   const request = await loadRequestFor(req)
   const updated = await changeStatus(request.id, 'REVIEWED', u.id, notes)
+  void notifyProformaReady(request.id) // fire-and-forget; never throws
   res.json({ request: updated })
 }
 
