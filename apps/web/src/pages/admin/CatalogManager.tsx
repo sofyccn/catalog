@@ -58,10 +58,10 @@ export default function CatalogManager() {
           </div>
         </div>
 
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24, padding: '24px 24px 64px' }}>
+        <div className="container grid-sidebar" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24, padding: '24px 24px 64px' }}>
           <CategoriesPanel categories={categories} loading={categoriesQ.isLoading} />
 
-          <div className="card" style={{ padding: 0, overflow: 'hidden', alignSelf: 'flex-start' }}>
+          <div className="card responsive-table-card" style={{ padding: 0, alignSelf: 'flex-start' }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)' }}>
               <span className="label">Productos ({products.length})</span>
             </div>

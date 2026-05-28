@@ -63,7 +63,7 @@ export default function DispatcherOrderReview() {
           </div>
         </div>
 
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 32, padding: '32px 24px 64px' }}>
+        <div className="container grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 32, padding: '32px 24px 64px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1 }}>
@@ -95,7 +95,7 @@ export default function DispatcherOrderReview() {
             </div>
           </div>
 
-          <aside style={{ position: 'sticky', top: 96, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <aside className="sticky-aside" style={{ position: 'sticky', top: 96, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="card" style={{ padding: 20 }}>
               <h3 style={{ fontSize: 18, marginBottom: 12 }}>Resumen</h3>
               <div className="row" style={{ justifyContent: 'space-between', fontSize: 14, marginBottom: 6 }}>

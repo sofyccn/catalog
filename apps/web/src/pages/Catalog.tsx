@@ -125,9 +125,9 @@ export default function Catalog() {
           </div>
         </section>
 
-        <div className="container" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 28, padding: '24px 24px 64px', alignItems: 'start' }}>
+        <div className="container grid-sidebar" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 28, padding: '24px 24px 64px', alignItems: 'start' }}>
           {/* Filters sidebar */}
-          <aside style={{ display: 'flex', flexDirection: 'column', gap: 18, position: 'sticky', top: 88 }}>
+          <aside className="sticky-aside" style={{ display: 'flex', flexDirection: 'column', gap: 18, position: 'sticky', top: 88 }}>
             <FacetSection title="Categorías">
               <FacetList facets={facets?.categories} selected={categoryId ? [categoryId] : []} onToggle={(id) => setCategoryId((c) => (c === id ? null : id))} />
             </FacetSection>

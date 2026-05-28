@@ -163,3 +163,38 @@ h1, h2, h3, h4 {
   to { opacity: 1; transform: translateY(0); }
 }
 .fade-up { animation: fadeUp 350ms ease-out both; }
+
+/* === Responsive helpers ============================================
+   Add these classNames to grid containers. Inline styles keep desktop
+   layout; media queries below collapse to a single column on phones.
+   ================================================================== */
+.scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+.responsive-table-card { overflow-x: auto; }
+.responsive-table-card > * { min-width: 720px; }
+
+@media (max-width: 900px) {
+  .grid-2col,
+  .grid-sidebar {
+    grid-template-columns: 1fr !important;
+  }
+  .sticky-aside {
+    position: static !important;
+    top: auto !important;
+  }
+  .container {
+    padding: 0 18px !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .kpis-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .container {
+    padding: 0 14px !important;
+  }
+  h1 {
+    font-size: clamp(24px, 7vw, 34px) !important;
+  }
+}

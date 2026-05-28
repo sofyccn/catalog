@@ -146,7 +146,7 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
         </div>
       </div>
 
-      <div className="container" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 32, padding: '32px 24px 64px' }}>
+      <div className="container grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 32, padding: '32px 24px 64px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div className="card" style={{ padding: 24 }}>
             <span className="label">Pedido</span>
@@ -173,7 +173,7 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
           </div>
         </div>
 
-        <aside style={{ position: 'sticky', top: 96, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <aside className="sticky-aside" style={{ position: 'sticky', top: 96, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {reviewed ? (
             <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <h3 style={{ fontSize: 18, marginBottom: 4 }}>¿Cómo continuamos?</h3>

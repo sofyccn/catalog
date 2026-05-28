@@ -49,7 +49,7 @@ export default function DispatcherInbox() {
                 'No hay pedidos nuevos por ahora.'
               )}
             </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 24 }}>
+            <div className="kpis-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginTop: 24 }}>
               <Kpi label="nuevos sin revisar" value={kpi('SENT')} accent />
               <Kpi label="en revisión" value={kpi('IN_REVIEW')} />
               <Kpi label="proformas enviadas" value={kpi('REVIEWED')} />
@@ -98,7 +98,7 @@ export default function DispatcherInbox() {
 
         {/* Table */}
         <div className="container" style={{ padding: '24px 24px 64px' }}>
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card responsive-table-card" style={{ padding: 0 }}>
             {isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
                 <Loader2 className="animate-spin" size={24} style={{ color: 'var(--ink-faint)' }} />

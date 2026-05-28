@@ -57,7 +57,7 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          <div className="container" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 40, padding: '40px 24px 48px' }}>
+          <div className="container grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 40, padding: '40px 24px 48px' }}>
             <div style={{ background: 'white', borderRadius: 20, overflow: 'hidden', border: '1px solid var(--line)', aspectRatio: '4 / 3', position: 'relative' }}>
               <ProductThumb src={product.images?.[0]?.urlFull ?? product.images?.[0]?.urlMedium} alt={product.name} />
               {product.isNew && (

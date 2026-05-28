@@ -89,7 +89,7 @@ export default function Cart() {
           </div>
 
           <div
-            className="container"
+            className="container grid-2col"
             style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 32, padding: '32px 24px 64px' }}
           >
             <div className="card" style={{ padding: 0 }}>
@@ -156,7 +156,7 @@ export default function Cart() {
               ))}
             </div>
 
-            <aside style={{ position: 'sticky', top: 96, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <aside className="sticky-aside" style={{ position: 'sticky', top: 96, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div className="card" style={{ padding: 20 }}>
                 <h3 style={{ fontSize: 20, marginBottom: 12 }}>Resumen</h3>
                 <div className="row" style={{ justifyContent: 'space-between', fontSize: 14 }}>
