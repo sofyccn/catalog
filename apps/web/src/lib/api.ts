@@ -8,7 +8,10 @@ export function setTokenGetter(fn: (() => Promise<string | null>) | null) {
   tokenGetter = fn
 }
 
-export const api = axios.create({ baseURL: '/api/v1' })
+// `indexes: null` serializes arrays as ?brandId=a&brandId=b (no brackets), so
+// Express 5's default 'simple' query parser sees the values as a real array.
+// Without this, multi-select filters (brand/model) were silently dropped.
+export const api = axios.create({ baseURL: '/api/v1', paramsSerializer: { indexes: null } })
 
 api.interceptors.request.use(async (config) => {
   const token = tokenGetter ? await tokenGetter() : null
