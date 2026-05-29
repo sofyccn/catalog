@@ -8,10 +8,16 @@ export function setTokenGetter(fn: (() => Promise<string | null>) | null) {
   tokenGetter = fn
 }
 
+// In production, set VITE_API_URL to the backend's base URL (e.g. https://x.up.railway.app).
+// In dev, leave it unset — Vite proxies /api to localhost:3000.
+const apiBase = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api/v1`
+  : '/api/v1'
+
 // `indexes: null` serializes arrays as ?brandId=a&brandId=b (no brackets), so
 // Express 5's default 'simple' query parser sees the values as a real array.
 // Without this, multi-select filters (brand/model) were silently dropped.
-export const api = axios.create({ baseURL: '/api/v1', paramsSerializer: { indexes: null } })
+export const api = axios.create({ baseURL: apiBase, paramsSerializer: { indexes: null } })
 
 api.interceptors.request.use(async (config) => {
   const token = tokenGetter ? await tokenGetter() : null
