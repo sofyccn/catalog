@@ -32,6 +32,9 @@ export function Header() {
           <NavPill to="/pedido" active={pathname.startsWith('/pedido')}>
             Mi pedido
           </NavPill>
+          <NavPill to="/perfil" active={pathname.startsWith('/perfil')}>
+            Mi perfil
+          </NavPill>
         </nav>
         <div style={{ flex: 1 }} />
         <Link

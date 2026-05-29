@@ -1,42 +1,76 @@
 import { useClerk } from '@clerk/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Clock, LogOut, RefreshCw } from 'lucide-react'
+import { KyodoLogo } from '../components/KyodoLogo'
+import { ProfileForm } from '../components/ProfileForm'
 
 export default function Pending() {
   const { signOut } = useClerk()
   const qc = useQueryClient()
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 text-center shadow-lg">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-          <Clock className="h-6 w-6 text-amber-600" />
-        </div>
-        <h1 className="mt-4 text-xl font-semibold text-slate-900">Cuenta pendiente de aprobación</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Tu registro fue recibido. Un administrador debe aprobar tu acceso antes de que puedas
-          usar el catálogo. Te avisaremos cuando esté listo.
-        </p>
-
-        <div className="mt-6 flex flex-col gap-2">
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* Minimal header */}
+      <header style={{ borderBottom: '1px solid var(--line)', background: 'rgba(250,250,245,0.92)' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px' }}>
+          <KyodoLogo size={42} tagline />
           <button
-            type="button"
-            onClick={() => qc.invalidateQueries({ queryKey: ['me'] })}
-            className="flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 font-medium text-white transition hover:bg-slate-800"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Volver a comprobar
-          </button>
-          <button
-            type="button"
             onClick={() => signOut({ redirectUrl: '/login' })}
-            className="flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+            className="btn ghost sm"
           >
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
+            <LogOut size={14} /> Cerrar sesión
           </button>
         </div>
-      </div>
+      </header>
+
+      <main className="fade-up container" style={{ padding: '32px 24px 64px', maxWidth: 560 }}>
+        {/* Status card */}
+        <div className="card" style={{ padding: 24 }}>
+          <div className="row" style={{ gap: 14, alignItems: 'flex-start' }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: 'var(--amber-tint)',
+                color: 'var(--amber)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Clock size={22} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 22, marginBottom: 4 }}>Cuenta pendiente de aprobación</h1>
+              <p className="muted" style={{ fontSize: 14 }}>
+                Tu registro fue recibido. Mientras un administrador aprueba tu acceso, completa tu
+                perfil con tu información de contacto.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
+            <button
+              type="button"
+              onClick={() => qc.invalidateQueries({ queryKey: ['me'] })}
+              className="btn ghost sm"
+            >
+              <RefreshCw size={14} /> Volver a comprobar
+            </button>
+          </div>
+        </div>
+
+        {/* Profile form — info that helps the admin decide */}
+        <div className="card" style={{ padding: 24, marginTop: 16 }}>
+          <h2 style={{ fontSize: 20, marginBottom: 4 }}>Completa tu perfil</h2>
+          <p className="muted" style={{ fontSize: 13, marginBottom: 16 }}>
+            El administrador verá esta información al revisar tu solicitud.
+          </p>
+          <ProfileForm />
+        </div>
+      </main>
     </div>
   )
 }

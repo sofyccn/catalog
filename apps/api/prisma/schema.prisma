@@ -38,6 +38,10 @@ model User {
   email        String     @unique
   passwordHash String? // legacy / unused under Clerk auth — drop in a later migration
   fullName     String
+  phone        String? // editable on profile
+  city         String? // editable on profile
+  company      String? // editable on profile (cliente · finca/empresa)
+  photoUrl     String? // public R2 URL, ~400px webp
   role         Role? // assigned by an admin at approval time
   status       UserStatus @default(PENDING)
   active       Boolean    @default(true)

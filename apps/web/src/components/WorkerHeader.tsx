@@ -36,6 +36,12 @@ export function WorkerHeader() {
           Panel interno
         </span>
         <div style={{ flex: 1 }} />
+        <Link
+          to="/perfil"
+          style={{ padding: '8px 14px', borderRadius: 999, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)' }}
+        >
+          Mi perfil
+        </Link>
         <UserButton />
       </div>
     </header>

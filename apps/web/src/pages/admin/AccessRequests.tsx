@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Check, Loader2, X } from 'lucide-react'
+import { ArrowLeft, Building2, Check, Loader2, MapPin, Phone, User, X } from 'lucide-react'
 import { usePendingUsers, useApproveUser, useRejectUser } from '../../api/users'
 import { roleLabel } from '../../lib/roles'
 import type { Role } from '../../types/auth'
@@ -47,9 +47,24 @@ export default function AccessRequests() {
                 key={u.id}
                 className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
-                  <p className="font-medium text-slate-900">{u.fullName}</p>
-                  <p className="text-sm text-slate-500">{u.email}</p>
+                <div className="flex items-start gap-3">
+                  {u.photoUrl ? (
+                    <img src={u.photoUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-slate-500">
+                      <User className="h-6 w-6" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium text-slate-900">{u.fullName}</p>
+                    <p className="text-sm text-slate-500">{u.email}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
+                      {u.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{u.phone}</span>}
+                      {u.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{u.city}</span>}
+                      {u.company && <span className="inline-flex items-center gap-1"><Building2 className="h-3 w-3" />{u.company}</span>}
+                      {!u.phone && !u.city && !u.company && <span className="italic text-slate-400">Perfil no completado</span>}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">

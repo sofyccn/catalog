@@ -9,6 +9,10 @@ export function publicUser(user: User) {
     role: user.role,
     status: user.status,
     active: user.active,
+    phone: user.phone,
+    city: user.city,
+    company: user.company,
+    photoUrl: user.photoUrl,
     createdAt: user.createdAt,
   }
 }

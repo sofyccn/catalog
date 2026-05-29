@@ -6,6 +6,7 @@ import Catalog from './pages/Catalog'
 import ProductDetail from './pages/ProductDetail'
 import Cart from './pages/Cart'
 import MyOrder from './pages/MyOrder'
+import Profile from './pages/Profile'
 import DispatcherInbox from './pages/dispatcher/Inbox'
 import DispatcherOrderReview from './pages/dispatcher/OrderReview'
 import AccessRequests from './pages/admin/AccessRequests'
@@ -24,6 +25,7 @@ export default function App() {
       {/* Authenticated area — AppLayout enforces signed-in + ACTIVE status */}
       <Route element={<AppLayout />}>
         <Route path="/" element={<RoleRedirect />} />
+        <Route path="/perfil" element={<Profile />} />
 
         <Route element={<RequireRole roles={['ADMIN']} />}>
           <Route path="/admin" element={<Dashboard />} />

@@ -9,5 +9,9 @@ export interface Me {
   role: Role | null
   status: UserStatus
   active: boolean
+  phone: string | null
+  city: string | null
+  company: string | null
+  photoUrl: string | null
   createdAt: string
 }
