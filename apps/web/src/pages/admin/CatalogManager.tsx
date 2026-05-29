@@ -45,8 +45,8 @@ export default function CatalogManager() {
       <main className="fade-up">
         <div style={{ background: 'var(--bg-tint)', borderBottom: '1px solid var(--line)' }}>
           <div className="container" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link to="/admin" className="btn ghost sm">
-              <ArrowLeft size={14} /> Panel
+            <Link to="/admin" className="btn ghost">
+              <ArrowLeft size={16} /> Volver al panel
             </Link>
             <div style={{ flex: 1 }}>
               <span className="label">Administración</span>

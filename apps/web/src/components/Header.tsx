@@ -21,7 +21,8 @@ export function Header() {
       }}
     >
       <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '14px 24px' }}>
-        <Link to="/catalogo" style={{ display: 'inline-flex' }}>
+        {/* Logo → root, redirected to the user's panel home (clients land back on the catalog, admins on /admin). */}
+        <Link to="/" style={{ display: 'inline-flex' }} title="Volver al inicio">
           <KyodoLogo size={42} tagline />
         </Link>
         <nav style={{ display: 'flex', gap: 4, marginLeft: 12 }}>

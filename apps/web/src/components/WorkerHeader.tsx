@@ -16,7 +16,8 @@ export function WorkerHeader() {
       }}
     >
       <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 24px' }}>
-        <Link to="/despacho" style={{ display: 'inline-flex' }}>
+        {/* Logo → root, redirected to the user's panel home (admin or dispatcher). */}
+        <Link to="/" style={{ display: 'inline-flex' }} title="Volver al panel">
           <KyodoLogo size={42} tagline />
         </Link>
         <span
