@@ -96,9 +96,9 @@ export default function DispatcherInbox() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="container" style={{ padding: '24px 24px 64px' }}>
-          <div className="card responsive-table-card" style={{ padding: 0 }}>
+        {/* Orders list */}
+        <div className="container orders-wrap" style={{ padding: '24px 24px 64px' }}>
+          <div className="card orders-card" style={{ padding: 0 }}>
             {isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
                 <Loader2 className="animate-spin" size={24} style={{ color: 'var(--ink-faint)' }} />
@@ -108,64 +108,36 @@ export default function DispatcherInbox() {
                 <h3 style={{ fontSize: 18 }}>No hay pedidos en esta categoría</h3>
               </div>
             ) : (
-              <>
+              filtered.map((o) => (
                 <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '120px 1.4fr 90px 150px 150px 150px',
-                    gap: 12,
-                    padding: '12px 18px',
-                    borderBottom: '1.5px solid var(--line)',
-                    background: 'var(--bg-tint)',
-                  }}
-                  className="label"
+                  key={o.id}
+                  className="order-row"
+                  onClick={() => navigate(`/despacho/pedido/${o.id}`)}
                 >
-                  <span>Pedido</span>
-                  <span>Cliente</span>
-                  <span style={{ textAlign: 'right' }}>Ítems</span>
-                  <span>Estado</span>
-                  <span>Recibido</span>
-                  <span style={{ textAlign: 'right' }}>Acción</span>
-                </div>
-                {filtered.map((o) => (
-                  <div
-                    key={o.id}
-                    onClick={() => navigate(`/despacho/pedido/${o.id}`)}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '120px 1.4fr 90px 150px 150px 150px',
-                      gap: 12,
-                      padding: '14px 18px',
-                      alignItems: 'center',
-                      borderBottom: '1px solid var(--line-soft)',
-                      cursor: 'pointer',
+                  <span className="order-row__id">#{o.id.slice(-8)}</span>
+                  <div className="order-row__client">
+                    <div className="order-row__name">{o.client?.fullName ?? '—'}</div>
+                    <div className="order-row__email">{o.client?.email}</div>
+                  </div>
+                  <div className="order-row__meta">
+                    <span>{o._count.items} ítem{o._count.items !== 1 ? 's' : ''}</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{shortDate(o.createdAt)}</span>
+                  </div>
+                  <div className="order-row__status">
+                    <StatusTag status={o.status} />
+                  </div>
+                  <button
+                    className={`order-row__action btn sm ${o.status === 'SENT' ? 'primary' : 'ghost'}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate(`/despacho/pedido/${o.id}`)
                     }}
                   >
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 14, fontWeight: 600 }}>
-                      #{o.id.slice(-8)}
-                    </span>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 500 }}>{o.client?.fullName ?? '—'}</div>
-                      <div className="muted" style={{ fontSize: 12 }}>{o.client?.email}</div>
-                    </div>
-                    <span style={{ textAlign: 'right', fontSize: 14 }}>{o._count.items}</span>
-                    <StatusTag status={o.status} />
-                    <span className="muted" style={{ fontSize: 12 }}>{shortDate(o.createdAt)}</span>
-                    <div style={{ textAlign: 'right' }}>
-                      <button
-                        className={`btn sm ${o.status === 'SENT' ? 'primary' : 'ghost'}`}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(`/despacho/pedido/${o.id}`)
-                        }}
-                        style={{ fontSize: 12 }}
-                      >
-                        {o.status === 'SENT' ? 'Revisar →' : 'Ver'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </>
+                    {o.status === 'SENT' ? 'Revisar →' : 'Ver'}
+                  </button>
+                </div>
+              ))
             )}
           </div>
         </div>

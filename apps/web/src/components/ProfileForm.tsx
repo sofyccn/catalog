@@ -3,13 +3,16 @@ import { Camera, Loader2, User } from 'lucide-react'
 import { useMe, useUpdateProfile, useUploadPhoto } from '../api/me'
 import { getApiErrorMessage } from '../lib/api'
 
-/** Reusable profile form — used on /perfil and embedded in the Pending screen. */
+/** Reusable profile form — used on /perfil and embedded in the Pending screen.
+ *  Name + last name live here; email is the only read-only field (Clerk identity). */
 export function ProfileForm() {
   const me = useMe()
   const update = useUpdateProfile()
   const photo = useUploadPhoto()
   const user = me.data
 
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
   const [city, setCity] = useState('')
   const [company, setCompany] = useState('')
@@ -18,6 +21,8 @@ export function ProfileForm() {
 
   useEffect(() => {
     if (user) {
+      setFirstName(user.firstName ?? '')
+      setLastName(user.lastName ?? '')
       setPhone(user.phone ?? '')
       setCity(user.city ?? '')
       setCompany(user.company ?? '')
@@ -27,7 +32,13 @@ export function ProfileForm() {
 
   const submit = () => {
     update.mutate(
-      { phone: phone.trim() || null, city: city.trim() || null, company: company.trim() || null },
+      {
+        firstName: firstName.trim() || null,
+        lastName: lastName.trim() || null,
+        phone: phone.trim() || null,
+        city: city.trim() || null,
+        company: company.trim() || null,
+      },
       {
         onSuccess: () => {
           setSaved(true)
@@ -84,14 +95,22 @@ export function ProfileForm() {
         </div>
       </div>
 
-      {/* Read-only Clerk-owned fields */}
+      {/* Email — the only read-only field (Clerk identity) */}
       <div className="card" style={{ padding: 14, background: 'var(--bg-tint)' }}>
-        <div className="label">Datos de tu cuenta</div>
-        <div style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>{user.fullName}</div>
-        <div className="muted" style={{ fontSize: 13 }}>{user.email}</div>
+        <div className="label">Correo</div>
+        <div style={{ marginTop: 4, fontSize: 15 }}>{user.email}</div>
         <p className="faint" style={{ fontSize: 11, marginTop: 6 }}>
-          Para cambiar nombre o contraseña, abre el menú de tu cuenta (foto arriba a la derecha).
+          Para cambiar correo o contraseña, abre el menú de tu cuenta (foto arriba a la derecha).
         </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }} className="profile-name-row">
+        <Field label="Nombre">
+          <input className="input" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Tu nombre" />
+        </Field>
+        <Field label="Apellido">
+          <input className="input" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Tu apellido" />
+        </Field>
       </div>
 
       <Field label="Teléfono">

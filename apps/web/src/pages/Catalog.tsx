@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LayoutGrid, List, Loader2, Plus, Search, X } from 'lucide-react'
+import { Filter, LayoutGrid, List, Loader2, Plus, Search, X } from 'lucide-react'
 import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
 import {
@@ -43,6 +43,7 @@ export default function Catalog() {
   const [view, setView] = useState<'list' | 'grid'>('grid')
   const [limit, setLimit] = useState(PAGE_SIZE)
   const [toast, setToast] = useState<string | null>(null)
+  const [showFilters, setShowFilters] = useState(false)
 
   const debouncedQuery = useDebounced(query.trim(), 300)
   const models = useEquipmentModels(categoryId ?? undefined)
@@ -96,6 +97,15 @@ export default function Catalog() {
   }
   const hasFilters =
     !!debouncedQuery || !!categoryId || !!partTypeId || brandIds.length > 0 || !!modelId || !!minPrice || !!maxPrice || isNew || unitType !== 'all'
+  const activeFilterCount =
+    (debouncedQuery ? 1 : 0) +
+    (categoryId ? 1 : 0) +
+    (partTypeId ? 1 : 0) +
+    brandIds.length +
+    (modelId ? 1 : 0) +
+    (minPrice || maxPrice ? 1 : 0) +
+    (isNew ? 1 : 0) +
+    (unitType !== 'all' ? 1 : 0)
 
   const facetName = (list: Facet[] | undefined, id: string | null) => list?.find((f) => f.id === id)?.name
 
@@ -125,9 +135,22 @@ export default function Catalog() {
           </div>
         </section>
 
-        <div className="container grid-sidebar" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 28, padding: '24px 24px 64px', alignItems: 'start' }}>
+        <div className="container catalog-grid grid-sidebar" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 28, padding: '24px 24px 64px', alignItems: 'start' }}>
+          <button
+            type="button"
+            className="catalog-filters-toggle btn ghost"
+            onClick={() => setShowFilters((s) => !s)}
+          >
+            <Filter size={16} />
+            {showFilters ? 'Ocultar filtros' : 'Filtros'}
+            {activeFilterCount > 0 && ` (${activeFilterCount})`}
+          </button>
+
           {/* Filters sidebar */}
-          <aside className="sticky-aside" style={{ display: 'flex', flexDirection: 'column', gap: 18, position: 'sticky', top: 88 }}>
+          <aside
+            className={`sticky-aside catalog-aside ${showFilters ? 'catalog-aside--open' : ''}`}
+            style={{ display: 'flex', flexDirection: 'column', gap: 18, position: 'sticky', top: 88 }}
+          >
             <FacetSection title="Categorías">
               <FacetList facets={facets?.categories} selected={categoryId ? [categoryId] : []} onToggle={(id) => setCategoryId((c) => (c === id ? null : id))} />
             </FacetSection>

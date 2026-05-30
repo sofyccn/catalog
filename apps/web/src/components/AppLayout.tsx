@@ -4,6 +4,7 @@ import { useMe } from '../api/me'
 import { FullScreenSpinner } from './Spinner'
 import Pending from '../pages/Pending'
 import Rejected from '../pages/Rejected'
+import { Footer } from './landing/parts'
 
 /**
  * Gate for the whole authenticated area:
@@ -11,7 +12,7 @@ import Rejected from '../pages/Rejected'
  *   loading              → spinner
  *   status PENDING       → waiting screen
  *   status REJECTED/etc. → no-access screen
- *   status ACTIVE        → render the app (Outlet)
+ *   status ACTIVE        → render the app (Outlet) + footer
  */
 export function AppLayout() {
   const { isLoaded, isSignedIn } = useAuth()
@@ -27,5 +28,12 @@ export function AppLayout() {
   if (me.data.status === 'PENDING') return <Pending />
   if (me.data.status !== 'ACTIVE') return <Rejected />
 
-  return <Outlet />
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1 }}>
+        <Outlet />
+      </div>
+      <Footer />
+    </div>
+  )
 }

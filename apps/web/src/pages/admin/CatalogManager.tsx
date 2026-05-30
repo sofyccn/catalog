@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ImagePlus, Loader2, Pencil, Plus, X } from 'lucide-react'
 import { WorkerHeader } from '../../components/WorkerHeader'
+import { ProductThumb } from '../../components/ProductThumb'
 import {
   formatPrice,
   useBrands,
@@ -61,44 +62,52 @@ export default function CatalogManager() {
         <div className="container grid-sidebar" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24, padding: '24px 24px 64px' }}>
           <CategoriesPanel categories={categories} loading={categoriesQ.isLoading} />
 
-          <div className="card responsive-table-card" style={{ padding: 0, alignSelf: 'flex-start' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)' }}>
+          <div className="card admin-products" style={{ padding: 0, alignSelf: 'flex-start' }}>
+            <div className="admin-products__head">
               <span className="label">Productos ({products.length})</span>
             </div>
             {productsQ.isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
                 <Loader2 className="animate-spin" size={24} style={{ color: 'var(--ink-faint)' }} />
               </div>
+            ) : products.length === 0 ? (
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>Aún no hay productos.</div>
             ) : (
-              <>
-                <div className="label" style={{ display: 'grid', gridTemplateColumns: '100px 1fr 140px 120px 80px 70px 70px', gap: 12, padding: '12px 20px', borderBottom: '1.5px solid var(--line)', background: 'var(--bg-tint)' }}>
-                  <span>Código</span>
-                  <span>Nombre</span>
-                  <span>Categoría</span>
-                  <span>Marca</span>
-                  <span style={{ textAlign: 'right' }}>Precio</span>
-                  <span>Estado</span>
-                  <span style={{ textAlign: 'right' }}>Editar</span>
-                </div>
-                {products.map((p) => (
-                  <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '100px 1fr 140px 120px 80px 70px 70px', gap: 12, padding: '12px 20px', alignItems: 'center', borderBottom: '1px solid var(--line-soft)', opacity: p.active ? 1 : 0.55 }}>
-                    <span className="tag muted" style={{ width: 'fit-content' }}>{p.code}</span>
-                    <span style={{ fontWeight: 500 }}>{p.name}{p.isNew && <span className="tag" style={{ marginLeft: 6, background: 'var(--amber-bright)', color: 'var(--ink)', fontSize: 9 }}>NUEVO</span>}</span>
-                    <span className="muted" style={{ fontSize: 13 }}>{categoriesById.get(p.categoryId)?.name ?? '—'}</span>
-                    <span className="muted" style={{ fontSize: 13 }}>{p.brand?.name ?? '—'}</span>
-                    <span style={{ textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 600 }}>{formatPrice(p.price)}</span>
-                    <span>
-                      <button onClick={() => toggleProduct.mutate({ id: p.id, active: !p.active })} className="tag" style={{ cursor: 'pointer', border: 'none', background: p.active ? 'var(--ok-tint)' : 'var(--bg-tint)', color: p.active ? 'var(--ok)' : 'var(--ink-faint)' }}>
-                        {p.active ? 'Activo' : 'Inactivo'}
-                      </button>
-                    </span>
-                    <div style={{ textAlign: 'right' }}>
-                      <button className="btn ghost sm" onClick={() => setEditing(p)} aria-label="Editar"><Pencil size={14} /></button>
+              products.map((p) => (
+                <div key={p.id} className="admin-row" style={{ opacity: p.active ? 1 : 0.55 }}>
+                  <div className="admin-row__thumb">
+                    <ProductThumb src={p.images?.[0]?.urlThumb} alt={p.name} />
+                  </div>
+                  <div className="admin-row__main">
+                    <div className="admin-row__top">
+                      <span className="tag muted">{p.code}</span>
+                      {p.brand && <span className="muted" style={{ fontSize: 12 }}>{p.brand.name}</span>}
+                      {p.isNew && (
+                        <span className="tag" style={{ background: 'var(--amber-bright)', color: 'var(--ink)', fontSize: 10 }}>NUEVO</span>
+                      )}
+                    </div>
+                    <div className="admin-row__name">{p.name}</div>
+                    <div className="admin-row__meta">
+                      {categoriesById.get(p.categoryId)?.name ?? '—'}
+                      {p.partType && ` · ${p.partType.name}`}
                     </div>
                   </div>
-                ))}
-                {products.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>Aún no hay productos.</div>}
-              </>
+                  <div className="admin-row__price">{formatPrice(p.price)}</div>
+                  <div className="admin-row__actions">
+                    <button
+                      type="button"
+                      onClick={() => toggleProduct.mutate({ id: p.id, active: !p.active })}
+                      className="tag"
+                      style={{ cursor: 'pointer', border: 'none', background: p.active ? 'var(--ok-tint)' : 'var(--bg-tint)', color: p.active ? 'var(--ok)' : 'var(--ink-faint)' }}
+                    >
+                      {p.active ? 'Activo' : 'Inactivo'}
+                    </button>
+                    <button className="btn ghost sm" onClick={() => setEditing(p)} aria-label="Editar">
+                      <Pencil size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>

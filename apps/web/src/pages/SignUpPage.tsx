@@ -1,9 +1,10 @@
 import { SignUp } from '@clerk/react'
+import { LandingShell } from '../components/landing/LandingShell'
 
 export default function SignUpPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+    <LandingShell mode="signup">
       <SignUp routing="path" path="/registro" signInUrl="/login" forceRedirectUrl="/" />
-    </div>
+    </LandingShell>
   )
 }

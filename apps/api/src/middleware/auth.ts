@@ -24,8 +24,10 @@ export const attachUser: RequestHandler = async (req, _res, next) => {
       clerkUser.emailAddresses[0]?.emailAddress ??
       `clerk_${userId}@unknown.local`
     ).toLowerCase()
+    const firstName = clerkUser.firstName ?? null
+    const lastName = clerkUser.lastName ?? null
     const fullName =
-      [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || email || 'Usuario'
+      [firstName, lastName].filter(Boolean).join(' ') || email.split('@')[0] || 'Usuario'
     const isBootstrap =
       !!env.BOOTSTRAP_ADMIN_EMAIL && email === env.BOOTSTRAP_ADMIN_EMAIL.toLowerCase()
 
@@ -36,6 +38,8 @@ export const attachUser: RequestHandler = async (req, _res, next) => {
       create: {
         clerkId: userId,
         email,
+        firstName,
+        lastName,
         fullName,
         status: isBootstrap ? 'ACTIVE' : 'PENDING',
         role: isBootstrap ? 'ADMIN' : null,

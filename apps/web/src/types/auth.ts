@@ -5,6 +5,9 @@ export type UserStatus = 'PENDING' | 'ACTIVE' | 'REJECTED'
 export interface Me {
   id: string
   email: string
+  firstName: string | null
+  lastName: string | null
+  /** Derived from firstName + lastName on save. Kept for legacy reads. */
   fullName: string
   role: Role | null
   status: UserStatus

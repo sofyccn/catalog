@@ -5,41 +5,14 @@ import { KyodoLogo } from './KyodoLogo'
 /** Minimal header for the internal (dispatcher/admin) panel — no cart. */
 export function WorkerHeader() {
   return (
-    <header
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        background: 'rgba(250, 250, 245, 0.92)',
-        backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid var(--line)',
-      }}
-    >
-      <div className="container" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 24px' }}>
-        {/* Logo → root, redirected to the user's panel home (admin or dispatcher). */}
-        <Link to="/" style={{ display: 'inline-flex' }} title="Volver al panel">
+    <header className="app-header">
+      <div className="app-header__row">
+        <Link to="/" className="app-header__logo" title="Volver al panel">
           <KyodoLogo size={42} tagline />
         </Link>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '4px 12px',
-            borderRadius: 999,
-            background: 'var(--green-tint)',
-            color: 'var(--green)',
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          Panel interno
-        </span>
-        <div style={{ flex: 1 }} />
-        <Link
-          to="/perfil"
-          style={{ padding: '8px 14px', borderRadius: 999, fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)' }}
-        >
+        <span className="app-header__badge">Panel interno</span>
+        <div className="app-header__spacer" />
+        <Link to="/perfil" className="app-header__profile">
           Mi perfil
         </Link>
         <UserButton />

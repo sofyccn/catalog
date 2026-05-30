@@ -16,16 +16,32 @@ export function me(req: Request, res: Response) {
 }
 
 const profileSchema = z.object({
+  firstName: z.string().trim().max(80).nullable().optional(),
+  lastName: z.string().trim().max(80).nullable().optional(),
   phone: z.string().trim().max(40).nullable().optional(),
   city: z.string().trim().max(100).nullable().optional(),
   company: z.string().trim().max(120).nullable().optional(),
 })
 
-/** User updates their own profile (phone / city / company). Available even while PENDING. */
+/** User updates their own profile. Available even while PENDING.
+ *  When firstName/lastName change, fullName is recomputed so older UIs that
+ *  still read fullName see the new value. */
 export async function updateProfile(req: Request, res: Response) {
   if (!req.localUser) throw unauthorized()
   const data = profileSchema.parse(req.body)
-  const updated = await prisma.user.update({ where: { id: req.localUser.id }, data })
+
+  const nameChanged = data.firstName !== undefined || data.lastName !== undefined
+  const nextFirst = data.firstName !== undefined ? data.firstName : req.localUser.firstName
+  const nextLast = data.lastName !== undefined ? data.lastName : req.localUser.lastName
+  const derivedFullName =
+    [nextFirst, nextLast].filter(Boolean).join(' ').trim() ||
+    req.localUser.email.split('@')[0] ||
+    'Usuario'
+
+  const updated = await prisma.user.update({
+    where: { id: req.localUser.id },
+    data: { ...data, ...(nameChanged ? { fullName: derivedFullName } : {}) },
+  })
   res.json({ user: publicUser(updated) })
 }
 

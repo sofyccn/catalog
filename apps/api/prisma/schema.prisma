@@ -37,7 +37,9 @@ model User {
   clerkId      String?    @unique // Clerk user id (null only for legacy seed rows)
   email        String     @unique
   passwordHash String? // legacy / unused under Clerk auth — drop in a later migration
-  fullName     String
+  firstName    String? // editable on profile — source of truth for the name
+  lastName     String? // editable on profile
+  fullName     String // derived: "${firstName} ${lastName}", kept for legacy reads
   phone        String? // editable on profile
   city         String? // editable on profile
   company      String? // editable on profile (cliente · finca/empresa)

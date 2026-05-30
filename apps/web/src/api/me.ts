@@ -17,6 +17,8 @@ export function useMe() {
 }
 
 export interface ProfileInput {
+  firstName?: string | null
+  lastName?: string | null
   phone?: string | null
   city?: string | null
   company?: string | null
