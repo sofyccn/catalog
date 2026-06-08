@@ -117,6 +117,7 @@ model Product {
   brand          Brand?    @relation(fields: [brandId], references: [id])
   isCompleteUnit Boolean   @default(false) // true = assembled equipment; false = spare part
   isNew          Boolean   @default(false) // "NEW" flag from the physical catalog
+  warehouseLocation String? // CASILLERO from Fernando's hoja (e.g. "A28", "B32"). Shown to dispatcher only.
   active         Boolean   @default(true)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

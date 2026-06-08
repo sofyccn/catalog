@@ -16,7 +16,15 @@ export interface RequestItemDetail {
   quantity: number
   available: boolean | null
   observations: string | null
-  product: { id: string; code: string; name: string; description: string | null }
+  product: {
+    id: string
+    code: string
+    name: string
+    description: string | null
+    /** Warehouse "casillero" (e.g. "A28"). Returned to dispatcher/admin so they
+     *  know where to pull the part from. The client UI hides this. */
+    warehouseLocation: string | null
+  }
 }
 export interface RequestClient {
   id: string

@@ -5,7 +5,6 @@ import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
 import {
   formatPrice,
-  useEquipmentModels,
   useProducts,
   type Facet,
   type Product,
@@ -24,8 +23,6 @@ function useDebounced<T>(value: T, ms = 300): T {
   return v
 }
 
-type UnitType = 'all' | 'true' | 'false'
-
 export default function Catalog() {
   const navigate = useNavigate()
   const addToCart = useCart((s) => s.add)
@@ -34,11 +31,9 @@ export default function Catalog() {
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [partTypeId, setPartTypeId] = useState<string | null>(null)
   const [brandIds, setBrandIds] = useState<string[]>([])
-  const [modelId, setModelId] = useState<string | null>(null)
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [isNew, setIsNew] = useState(false)
-  const [unitType, setUnitType] = useState<UnitType>('all')
   const [sort, setSort] = useState<NonNullable<ProductQuery['sort']>>('relevance')
   const [view, setView] = useState<'list' | 'grid'>('grid')
   const [limit, setLimit] = useState(PAGE_SIZE)
@@ -46,18 +41,15 @@ export default function Catalog() {
   const [showFilters, setShowFilters] = useState(false)
 
   const debouncedQuery = useDebounced(query.trim(), 300)
-  const models = useEquipmentModels(categoryId ?? undefined)
 
   const params: ProductQuery = {
     q: debouncedQuery.length >= 2 ? debouncedQuery : undefined,
     categoryId: categoryId ?? undefined,
     partTypeId: partTypeId ?? undefined,
     brandId: brandIds.length ? brandIds : undefined,
-    modelId: modelId ? [modelId] : undefined,
     minPrice: minPrice ? Number(minPrice) : undefined,
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
     isNew: isNew || undefined,
-    isCompleteUnit: unitType === 'all' ? undefined : unitType,
     sort,
     page: 1,
     limit,
@@ -67,7 +59,7 @@ export default function Catalog() {
   // Reset paging when any filter changes.
   useEffect(() => {
     setLimit(PAGE_SIZE)
-  }, [debouncedQuery, categoryId, partTypeId, brandIds, modelId, minPrice, maxPrice, isNew, unitType, sort])
+  }, [debouncedQuery, categoryId, partTypeId, brandIds, minPrice, maxPrice, isNew, sort])
 
   const data = productsQ.data
   const products = data?.data ?? []
@@ -89,23 +81,19 @@ export default function Catalog() {
     setCategoryId(null)
     setPartTypeId(null)
     setBrandIds([])
-    setModelId(null)
     setMinPrice('')
     setMaxPrice('')
     setIsNew(false)
-    setUnitType('all')
   }
   const hasFilters =
-    !!debouncedQuery || !!categoryId || !!partTypeId || brandIds.length > 0 || !!modelId || !!minPrice || !!maxPrice || isNew || unitType !== 'all'
+    !!debouncedQuery || !!categoryId || !!partTypeId || brandIds.length > 0 || !!minPrice || !!maxPrice || isNew
   const activeFilterCount =
     (debouncedQuery ? 1 : 0) +
     (categoryId ? 1 : 0) +
     (partTypeId ? 1 : 0) +
     brandIds.length +
-    (modelId ? 1 : 0) +
     (minPrice || maxPrice ? 1 : 0) +
-    (isNew ? 1 : 0) +
-    (unitType !== 'all' ? 1 : 0)
+    (isNew ? 1 : 0)
 
   const facetName = (list: Facet[] | undefined, id: string | null) => list?.find((f) => f.id === id)?.name
 
@@ -163,39 +151,11 @@ export default function Catalog() {
               <FacetList facets={facets?.brands} selected={brandIds} onToggle={toggleBrand} multi />
             </FacetSection>
 
-            {(models.data?.length ?? 0) > 0 && (
-              <FacetSection title="Modelo compatible">
-                <select className="input" value={modelId ?? ''} onChange={(e) => setModelId(e.target.value || null)}>
-                  <option value="">Todos los modelos</option>
-                  {models.data?.map((m) => (
-                    <option key={m.id} value={m.id}>{m.code} — {m.name}</option>
-                  ))}
-                </select>
-              </FacetSection>
-            )}
-
             <FacetSection title="Precio (USD)">
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input className="input" type="number" min={0} value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder={facets ? String(Math.floor(facets.priceRange.min)) : 'mín'} />
                 <span className="faint">—</span>
                 <input className="input" type="number" min={0} value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder={facets ? String(Math.ceil(facets.priceRange.max)) : 'máx'} />
-              </div>
-            </FacetSection>
-
-            <FacetSection title="Tipo de producto">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {(
-                  [
-                    ['all', 'Todos'],
-                    ['false', 'Repuestos'],
-                    ['true', 'Equipos completos'],
-                  ] as const
-                ).map(([val, label]) => (
-                  <label key={val} className="row" style={{ gap: 8, cursor: 'pointer', fontSize: 14 }}>
-                    <input type="radio" name="unitType" checked={unitType === val} onChange={() => setUnitType(val)} />
-                    {label}
-                  </label>
-                ))}
               </div>
             </FacetSection>
 
@@ -248,10 +208,8 @@ export default function Catalog() {
                 {brandIds.map((b) => (
                   <Chip key={b} onClear={() => toggleBrand(b)}>{facetName(facets?.brands, b) ?? 'Marca'}</Chip>
                 ))}
-                {modelId && <Chip onClear={() => setModelId(null)}>{models.data?.find((m) => m.id === modelId)?.code ?? 'Modelo'}</Chip>}
                 {(minPrice || maxPrice) && <Chip onClear={() => { setMinPrice(''); setMaxPrice('') }}>${minPrice || '0'} – ${maxPrice || '∞'}</Chip>}
                 {isNew && <Chip onClear={() => setIsNew(false)}>Nuevos</Chip>}
-                {unitType !== 'all' && <Chip onClear={() => setUnitType('all')}>{unitType === 'true' ? 'Equipos' : 'Repuestos'}</Chip>}
               </div>
             )}
 

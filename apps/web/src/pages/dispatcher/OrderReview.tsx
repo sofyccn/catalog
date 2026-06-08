@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, Loader2, X } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, MapPin, X } from 'lucide-react'
 import { WorkerHeader, StatusTag, shortDate } from '../../components/WorkerHeader'
 import { getApiErrorMessage } from '../../lib/api'
 import {
@@ -183,12 +183,21 @@ function ItemReviewRow({
         gap: 10,
       }}
     >
-      <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-        <div>
+      <div className="row" style={{ justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600 }}>{item.product.name}</div>
-          <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
-            <span className="tag muted" style={{ marginRight: 6 }}>{item.product.code}</span>
-            solicitado × {item.quantity}
+          <div className="muted" style={{ fontSize: 12, marginTop: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span className="tag muted">{item.product.code}</span>
+            <span>solicitado × {item.quantity}</span>
+            {item.product.warehouseLocation && (
+              <span
+                className="tag"
+                title="Casillero / ubicación en bodega"
+                style={{ background: 'var(--amber-tint)', color: 'var(--amber)', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                <MapPin size={11} /> Casillero {item.product.warehouseLocation}
+              </span>
+            )}
           </div>
         </div>
 
