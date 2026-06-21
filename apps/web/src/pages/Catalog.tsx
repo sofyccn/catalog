@@ -28,6 +28,8 @@ export default function Catalog() {
   const addToCart = useCart((s) => s.add)
 
   const [query, setQuery] = useState('')
+  // Top-level toggle: every product is either a complete machine or a spare part.
+  const [productMode, setProductMode] = useState<'all' | 'machines' | 'parts'>('all')
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const [partTypeId, setPartTypeId] = useState<string | null>(null)
   const [brandIds, setBrandIds] = useState<string[]>([])
@@ -45,11 +47,13 @@ export default function Catalog() {
   const params: ProductQuery = {
     q: debouncedQuery.length >= 2 ? debouncedQuery : undefined,
     categoryId: categoryId ?? undefined,
-    partTypeId: partTypeId ?? undefined,
+    // Only filter by part type when the user is browsing parts.
+    partTypeId: productMode === 'parts' ? partTypeId ?? undefined : undefined,
     brandId: brandIds.length ? brandIds : undefined,
     minPrice: minPrice ? Number(minPrice) : undefined,
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
     isNew: isNew || undefined,
+    isCompleteUnit: productMode === 'machines' ? 'true' : productMode === 'parts' ? 'false' : undefined,
     sort,
     page: 1,
     limit,
@@ -59,7 +63,12 @@ export default function Catalog() {
   // Reset paging when any filter changes.
   useEffect(() => {
     setLimit(PAGE_SIZE)
-  }, [debouncedQuery, categoryId, partTypeId, brandIds, minPrice, maxPrice, isNew, sort])
+  }, [debouncedQuery, productMode, categoryId, partTypeId, brandIds, minPrice, maxPrice, isNew, sort])
+
+  // Clear partTypeId when switching to "machines" — irrelevant.
+  useEffect(() => {
+    if (productMode === 'machines' && partTypeId) setPartTypeId(null)
+  }, [productMode, partTypeId])
 
   const data = productsQ.data
   const products = data?.data ?? []
@@ -78,6 +87,7 @@ export default function Catalog() {
   }
   const clearAll = () => {
     setQuery('')
+    setProductMode('all')
     setCategoryId(null)
     setPartTypeId(null)
     setBrandIds([])
@@ -86,11 +96,12 @@ export default function Catalog() {
     setIsNew(false)
   }
   const hasFilters =
-    !!debouncedQuery || !!categoryId || !!partTypeId || brandIds.length > 0 || !!minPrice || !!maxPrice || isNew
+    !!debouncedQuery || productMode !== 'all' || !!categoryId || !!partTypeId || brandIds.length > 0 || !!minPrice || !!maxPrice || isNew
   const activeFilterCount =
     (debouncedQuery ? 1 : 0) +
+    (productMode !== 'all' ? 1 : 0) +
     (categoryId ? 1 : 0) +
-    (partTypeId ? 1 : 0) +
+    (productMode === 'parts' && partTypeId ? 1 : 0) +
     brandIds.length +
     (minPrice || maxPrice ? 1 : 0) +
     (isNew ? 1 : 0)
@@ -139,13 +150,35 @@ export default function Catalog() {
             className={`sticky-aside catalog-aside ${showFilters ? 'catalog-aside--open' : ''}`}
             style={{ display: 'flex', flexDirection: 'column', gap: 18, position: 'sticky', top: 88 }}
           >
-            <FacetSection title="Categorías">
+            {/* Primary toggle: machines vs spare parts */}
+            <div className="card product-mode" style={{ padding: 4, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              {(
+                [
+                  ['all', 'Todos'],
+                  ['machines', 'Máquinas'],
+                  ['parts', 'Repuestos'],
+                ] as const
+              ).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setProductMode(val)}
+                  className={`product-mode__btn ${productMode === val ? 'is-active' : ''}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <FacetSection title={productMode === 'machines' ? 'Tipo de máquina' : 'Categoría'}>
               <FacetList facets={facets?.categories} selected={categoryId ? [categoryId] : []} onToggle={(id) => setCategoryId((c) => (c === id ? null : id))} />
             </FacetSection>
 
-            <FacetSection title="Tipo de parte">
-              <FacetList facets={facets?.partTypes} selected={partTypeId ? [partTypeId] : []} onToggle={(id) => setPartTypeId((c) => (c === id ? null : id))} />
-            </FacetSection>
+            {productMode !== 'machines' && (
+              <FacetSection title="Tipo de repuesto">
+                <FacetList facets={facets?.partTypes} selected={partTypeId ? [partTypeId] : []} onToggle={(id) => setPartTypeId((c) => (c === id ? null : id))} />
+              </FacetSection>
+            )}
 
             <FacetSection title="Marca">
               <FacetList facets={facets?.brands} selected={brandIds} onToggle={toggleBrand} multi />
@@ -203,8 +236,11 @@ export default function Catalog() {
             {hasFilters && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
                 {debouncedQuery && <Chip onClear={() => setQuery('')}>"{debouncedQuery}"</Chip>}
+                {productMode !== 'all' && (
+                  <Chip onClear={() => setProductMode('all')}>{productMode === 'machines' ? 'Máquinas' : 'Repuestos'}</Chip>
+                )}
                 {categoryId && <Chip onClear={() => setCategoryId(null)}>{facetName(facets?.categories, categoryId) ?? 'Categoría'}</Chip>}
-                {partTypeId && <Chip onClear={() => setPartTypeId(null)}>{facetName(facets?.partTypes, partTypeId) ?? 'Tipo'}</Chip>}
+                {productMode === 'parts' && partTypeId && <Chip onClear={() => setPartTypeId(null)}>{facetName(facets?.partTypes, partTypeId) ?? 'Tipo'}</Chip>}
                 {brandIds.map((b) => (
                   <Chip key={b} onClear={() => toggleBrand(b)}>{facetName(facets?.brands, b) ?? 'Marca'}</Chip>
                 ))}

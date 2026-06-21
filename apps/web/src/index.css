@@ -285,6 +285,12 @@ h1, h2, h3, h4 {
   .admin-row__actions { width: 100%; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--line-soft); }
 }
 
+/* === Catalog: Máquinas / Repuestos toggle ================================ */
+.product-mode { background: var(--bg-tint); border: 1px solid var(--line); }
+.product-mode__btn { padding: 10px 12px; border-radius: 12px; border: none; background: transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-soft); transition: background 120ms ease, color 120ms ease; }
+.product-mode__btn:hover { color: var(--ink); }
+.product-mode__btn.is-active { background: var(--green); color: #fff; box-shadow: var(--shadow-sm); }
+
 /* === Catalog: collapsible filter sidebar on mobile ======================== */
 .catalog-filters-toggle { display: none; }
 
