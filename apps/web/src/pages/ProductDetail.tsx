@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Loader2, Minus, Plus, ShoppingCart } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, Minus, Plus, ShoppingCart, X, ZoomIn } from 'lucide-react'
 import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
 import { formatPrice, useProduct, useRelatedProducts } from '../api/catalog'
@@ -14,6 +14,12 @@ export default function ProductDetail() {
   const addToCart = useCart((s) => s.add)
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+
+  const images = product?.images ?? []
+  const hasImages = images.length > 0
+  const mainImage = images[selectedImageIdx] ?? images[0]
 
   const handleAdd = () => {
     if (!product) return
@@ -58,10 +64,78 @@ export default function ProductDetail() {
           </div>
 
           <div className="container grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 40, padding: '40px 24px 48px' }}>
-            <div style={{ background: 'white', borderRadius: 20, overflow: 'hidden', border: '1px solid var(--line)', aspectRatio: '4 / 3', position: 'relative' }}>
-              <ProductThumb src={product.images?.[0]?.urlFull ?? product.images?.[0]?.urlMedium} alt={product.name} />
-              {product.isNew && (
-                <span className="tag" style={{ position: 'absolute', top: 14, left: 14, background: 'var(--amber-bright)', color: 'var(--ink)' }}>NUEVO</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button
+                type="button"
+                onClick={() => hasImages && setLightboxOpen(true)}
+                aria-label="Ampliar imagen"
+                disabled={!hasImages}
+                className="product-main-image"
+                style={{
+                  background: 'white',
+                  borderRadius: 20,
+                  overflow: 'hidden',
+                  border: '1px solid var(--line)',
+                  aspectRatio: '4 / 3',
+                  position: 'relative',
+                  padding: 0,
+                  cursor: hasImages ? 'zoom-in' : 'default',
+                  width: '100%',
+                }}
+              >
+                <ProductThumb src={mainImage?.urlFull ?? mainImage?.urlMedium} alt={product.name} />
+                {product.isNew && (
+                  <span className="tag" style={{ position: 'absolute', top: 14, left: 14, background: 'var(--amber-bright)', color: 'var(--ink)' }}>NUEVO</span>
+                )}
+                {hasImages && (
+                  <span
+                    aria-hidden="true"
+                    className="product-zoom-badge"
+                    style={{
+                      position: 'absolute',
+                      top: 14,
+                      right: 14,
+                      background: 'rgba(20,56,36,0.85)',
+                      color: '#fff',
+                      borderRadius: 999,
+                      padding: '8px 12px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      backdropFilter: 'blur(4px)',
+                    }}
+                  >
+                    <ZoomIn size={14} /> Ampliar
+                  </span>
+                )}
+              </button>
+
+              {images.length > 1 && (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {images.map((img, idx) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setSelectedImageIdx(idx)}
+                      aria-label={`Foto ${idx + 1}`}
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 10,
+                        overflow: 'hidden',
+                        border: `2px solid ${idx === selectedImageIdx ? 'var(--green)' : 'var(--line)'}`,
+                        padding: 0,
+                        cursor: 'pointer',
+                        background: 'white',
+                        transition: 'border-color 120ms ease',
+                      }}
+                    >
+                      <img src={img.urlThumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
@@ -132,7 +206,179 @@ export default function ProductDetail() {
               </div>
             </section>
           )}
+          {lightboxOpen && hasImages && (
+            <Lightbox
+              images={images.map((img) => ({ src: img.urlFull, alt: product.name }))}
+              startIndex={selectedImageIdx}
+              onClose={() => setLightboxOpen(false)}
+              onIndexChange={setSelectedImageIdx}
+            />
+          )}
         </main>
+      )}
+    </div>
+  )
+}
+
+/** Full-screen image viewer. Esc to close, click backdrop to close, arrow keys
+ *  (and on-screen arrows) to navigate. On mobile the image is pinch-zoomable
+ *  because touch-action is left at the browser default inside the overlay. */
+function Lightbox({
+  images,
+  startIndex,
+  onClose,
+  onIndexChange,
+}: {
+  images: { src: string; alt: string }[]
+  startIndex: number
+  onClose: () => void
+  onIndexChange: (i: number) => void
+}) {
+  const [idx, setIdx] = useState(startIndex)
+  const hasMany = images.length > 1
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight' && hasMany) setIdx((i) => (i + 1) % images.length)
+      if (e.key === 'ArrowLeft' && hasMany) setIdx((i) => (i - 1 + images.length) % images.length)
+    }
+    window.addEventListener('keydown', onKey)
+    // Prevent background scroll while lightbox is open.
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [images.length, hasMany, onClose])
+
+  useEffect(() => { onIndexChange(idx) }, [idx, onIndexChange])
+
+  const current = images[idx]
+  if (!current) return null
+
+  return (
+    <div
+      onClick={onClose}
+      role="dialog"
+      aria-label="Vista ampliada"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(10,18,14,0.92)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: 24,
+        cursor: 'zoom-out',
+      }}
+    >
+      <img
+        src={current.src}
+        alt={current.alt}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxWidth: '92vw',
+          maxHeight: '88vh',
+          objectFit: 'contain',
+          borderRadius: 8,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+          cursor: 'default',
+          userSelect: 'none',
+        }}
+      />
+
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar"
+        style={{
+          position: 'fixed',
+          top: 20,
+          right: 20,
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          border: 'none',
+          background: 'rgba(255,255,255,0.15)',
+          color: '#fff',
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(6px)',
+        }}
+      >
+        <X size={22} />
+      </button>
+
+      {hasMany && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setIdx((i) => (i - 1 + images.length) % images.length) }}
+            aria-label="Anterior"
+            style={{
+              position: 'fixed',
+              left: 20,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              border: 'none',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setIdx((i) => (i + 1) % images.length) }}
+            aria-label="Siguiente"
+            style={{
+              position: 'fixed',
+              right: 20,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              border: 'none',
+              background: 'rgba(255,255,255,0.15)',
+              color: '#fff',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ChevronRight size={24} />
+          </button>
+          <div
+            style={{
+              position: 'fixed',
+              bottom: 24,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(0,0,0,0.5)',
+              color: '#fff',
+              padding: '6px 14px',
+              borderRadius: 999,
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            {idx + 1} / {images.length}
+          </div>
+        </>
       )}
     </div>
   )

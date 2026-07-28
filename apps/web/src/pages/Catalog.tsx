@@ -30,13 +30,10 @@ export default function Catalog() {
   const [query, setQuery] = useState('')
   // Top-level toggle: every product is either a complete machine or a spare part.
   const [productMode, setProductMode] = useState<'all' | 'machines' | 'parts'>('all')
-  const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [partTypeId, setPartTypeId] = useState<string | null>(null)
   const [brandIds, setBrandIds] = useState<string[]>([])
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [isNew, setIsNew] = useState(false)
-  const [sort, setSort] = useState<NonNullable<ProductQuery['sort']>>('relevance')
   const [view, setView] = useState<'list' | 'grid'>('grid')
   const [limit, setLimit] = useState(PAGE_SIZE)
   const [toast, setToast] = useState<string | null>(null)
@@ -46,15 +43,11 @@ export default function Catalog() {
 
   const params: ProductQuery = {
     q: debouncedQuery.length >= 2 ? debouncedQuery : undefined,
-    categoryId: categoryId ?? undefined,
-    // Only filter by part type when the user is browsing parts.
-    partTypeId: productMode === 'parts' ? partTypeId ?? undefined : undefined,
     brandId: brandIds.length ? brandIds : undefined,
     minPrice: minPrice ? Number(minPrice) : undefined,
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
     isNew: isNew || undefined,
     isCompleteUnit: productMode === 'machines' ? 'true' : productMode === 'parts' ? 'false' : undefined,
-    sort,
     page: 1,
     limit,
   }
@@ -63,12 +56,7 @@ export default function Catalog() {
   // Reset paging when any filter changes.
   useEffect(() => {
     setLimit(PAGE_SIZE)
-  }, [debouncedQuery, productMode, categoryId, partTypeId, brandIds, minPrice, maxPrice, isNew, sort])
-
-  // Clear partTypeId when switching to "machines" — irrelevant.
-  useEffect(() => {
-    if (productMode === 'machines' && partTypeId) setPartTypeId(null)
-  }, [productMode, partTypeId])
+  }, [debouncedQuery, productMode, brandIds, minPrice, maxPrice, isNew])
 
   const data = productsQ.data
   const products = data?.data ?? []
@@ -88,20 +76,16 @@ export default function Catalog() {
   const clearAll = () => {
     setQuery('')
     setProductMode('all')
-    setCategoryId(null)
-    setPartTypeId(null)
     setBrandIds([])
     setMinPrice('')
     setMaxPrice('')
     setIsNew(false)
   }
   const hasFilters =
-    !!debouncedQuery || productMode !== 'all' || !!categoryId || !!partTypeId || brandIds.length > 0 || !!minPrice || !!maxPrice || isNew
+    !!debouncedQuery || productMode !== 'all' || brandIds.length > 0 || !!minPrice || !!maxPrice || isNew
   const activeFilterCount =
     (debouncedQuery ? 1 : 0) +
     (productMode !== 'all' ? 1 : 0) +
-    (categoryId ? 1 : 0) +
-    (productMode === 'parts' && partTypeId ? 1 : 0) +
     brandIds.length +
     (minPrice || maxPrice ? 1 : 0) +
     (isNew ? 1 : 0)
@@ -170,16 +154,6 @@ export default function Catalog() {
               ))}
             </div>
 
-            <FacetSection title={productMode === 'machines' ? 'Tipo de máquina' : 'Categoría'}>
-              <FacetList facets={facets?.categories} selected={categoryId ? [categoryId] : []} onToggle={(id) => setCategoryId((c) => (c === id ? null : id))} />
-            </FacetSection>
-
-            {productMode !== 'machines' && (
-              <FacetSection title="Tipo de repuesto">
-                <FacetList facets={facets?.partTypes} selected={partTypeId ? [partTypeId] : []} onToggle={(id) => setPartTypeId((c) => (c === id ? null : id))} />
-              </FacetSection>
-            )}
-
             <FacetSection title="Marca">
               <FacetList facets={facets?.brands} selected={brandIds} onToggle={toggleBrand} multi />
             </FacetSection>
@@ -211,24 +185,15 @@ export default function Catalog() {
                 {total} {total === 1 ? 'producto' : 'productos'}
                 {productsQ.isFetching && <Loader2 className="animate-spin" size={16} style={{ color: 'var(--ink-faint)', marginLeft: 10, verticalAlign: 'middle' }} />}
               </h2>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <select className="btn ghost" value={sort} onChange={(e) => setSort(e.target.value as ProductQuery['sort'] as NonNullable<ProductQuery['sort']>)} style={{ minWidth: 180 }}>
-                  <option value="relevance">Relevancia</option>
-                  <option value="price-asc">Precio: menor a mayor</option>
-                  <option value="price-desc">Precio: mayor a menor</option>
-                  <option value="newest">Más nuevos</option>
-                  <option value="name">Nombre</option>
-                </select>
-                <div style={{ display: 'inline-flex', background: 'var(--bg-tint)', borderRadius: 999, padding: 4 }}>
-                  {(['grid', 'list'] as const).map((v) => {
-                    const Icon = v === 'grid' ? LayoutGrid : List
-                    return (
-                      <button key={v} onClick={() => setView(v)} aria-label={v} style={{ padding: '6px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', display: 'inline-flex', background: view === v ? 'white' : 'transparent', boxShadow: view === v ? 'var(--shadow-sm)' : 'none' }}>
-                        <Icon size={16} />
-                      </button>
-                    )
-                  })}
-                </div>
+              <div style={{ display: 'inline-flex', background: 'var(--bg-tint)', borderRadius: 999, padding: 4 }}>
+                {(['grid', 'list'] as const).map((v) => {
+                  const Icon = v === 'grid' ? LayoutGrid : List
+                  return (
+                    <button key={v} onClick={() => setView(v)} aria-label={v} style={{ padding: '6px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', display: 'inline-flex', background: view === v ? 'white' : 'transparent', boxShadow: view === v ? 'var(--shadow-sm)' : 'none' }}>
+                      <Icon size={16} />
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
@@ -239,8 +204,6 @@ export default function Catalog() {
                 {productMode !== 'all' && (
                   <Chip onClear={() => setProductMode('all')}>{productMode === 'machines' ? 'Máquinas' : 'Repuestos'}</Chip>
                 )}
-                {categoryId && <Chip onClear={() => setCategoryId(null)}>{facetName(facets?.categories, categoryId) ?? 'Categoría'}</Chip>}
-                {productMode === 'parts' && partTypeId && <Chip onClear={() => setPartTypeId(null)}>{facetName(facets?.partTypes, partTypeId) ?? 'Tipo'}</Chip>}
                 {brandIds.map((b) => (
                   <Chip key={b} onClear={() => toggleBrand(b)}>{facetName(facets?.brands, b) ?? 'Marca'}</Chip>
                 ))}
