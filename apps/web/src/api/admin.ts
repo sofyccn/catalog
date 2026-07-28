@@ -2,14 +2,16 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { Category, Product, ProductPage } from './catalog'
 
-/** Admin product list — includes inactive products. */
+/** Admin product list — includes inactive products. The API uses `q` for
+ *  full-text search across name / code / description; we pass it through
+ *  from the admin search input. */
 export function useAdminProducts(search?: string) {
   return useQuery({
-    queryKey: ['admin-products', { search: search ?? '' }],
+    queryKey: ['admin-products', { q: search ?? '' }],
     queryFn: async () =>
       (
         await api.get<ProductPage>('/products', {
-          params: { includeInactive: true, limit: 200, ...(search ? { search } : {}) },
+          params: { includeInactive: true, limit: 200, ...(search ? { q: search } : {}) },
         })
       ).data,
   })

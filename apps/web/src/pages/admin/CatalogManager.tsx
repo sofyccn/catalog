@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, ImagePlus, Loader2, Pencil, Plus, X } from 'lucide-react'
+import { ArrowLeft, ImagePlus, Loader2, Pencil, Plus, Search, X } from 'lucide-react'
 import { WorkerHeader } from '../../components/WorkerHeader'
 import { ProductThumb } from '../../components/ProductThumb'
 import {
@@ -25,9 +25,20 @@ import {
 } from '../../api/admin'
 import { getApiErrorMessage } from '../../lib/api'
 
+function useDebounced<T>(value: T, ms = 300): T {
+  const [v, setV] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms)
+    return () => clearTimeout(t)
+  }, [value, ms])
+  return v
+}
+
 export default function CatalogManager() {
   const categoriesQ = useCategories()
-  const productsQ = useAdminProducts()
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounced(search.trim(), 300)
+  const productsQ = useAdminProducts(debouncedSearch.length >= 2 ? debouncedSearch : undefined)
   const toggleProduct = useToggleProduct()
   const [editing, setEditing] = useState<Product | 'new' | null>(null)
 
@@ -63,15 +74,59 @@ export default function CatalogManager() {
           <CategoriesPanel categories={categories} loading={categoriesQ.isLoading} />
 
           <div className="card admin-products" style={{ padding: 0, alignSelf: 'flex-start' }}>
-            <div className="admin-products__head">
-              <span className="label">Productos ({products.length})</span>
+            <div className="admin-products__head" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <span className="label" style={{ flexShrink: 0 }}>
+                Productos ({productsQ.data?.total ?? 0}
+                {debouncedSearch && productsQ.data ? ` · mostrando ${products.length}` : ''})
+              </span>
+              <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
+                <Search
+                  size={16}
+                  style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)', pointerEvents: 'none' }}
+                />
+                <input
+                  className="input"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por nombre o código (ej. carburador, MS660, AFS55)"
+                  style={{ paddingLeft: 36, fontSize: 14 }}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    aria-label="Limpiar búsqueda"
+                    style={{
+                      position: 'absolute',
+                      right: 8,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--ink-faint)',
+                      display: 'inline-flex',
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {productsQ.isFetching && !productsQ.isLoading && (
+                <Loader2 className="animate-spin" size={16} style={{ color: 'var(--ink-faint)' }} />
+              )}
             </div>
             {productsQ.isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
                 <Loader2 className="animate-spin" size={24} style={{ color: 'var(--ink-faint)' }} />
               </div>
             ) : products.length === 0 ? (
-              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>Aún no hay productos.</div>
+              <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
+                {debouncedSearch
+                  ? `No hay productos que contengan "${debouncedSearch}".`
+                  : 'Aún no hay productos.'}
+              </div>
             ) : (
               products.map((p) => (
                 <div key={p.id} className="admin-row" style={{ opacity: p.active ? 1 : 0.55 }}>
