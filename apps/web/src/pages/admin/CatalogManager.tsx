@@ -70,9 +70,7 @@ export default function CatalogManager() {
           </div>
         </div>
 
-        <div className="container grid-sidebar" style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 24, padding: '24px 24px 64px' }}>
-          <CategoriesPanel categories={categories} loading={categoriesQ.isLoading} />
-
+        <div className="container" style={{ padding: '24px 24px 64px' }}>
           <div className="card admin-products" style={{ padding: 0, alignSelf: 'flex-start' }}>
             <div className="admin-products__head" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <span className="label" style={{ flexShrink: 0 }}>
