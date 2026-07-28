@@ -15,8 +15,6 @@ import {
 } from '../../api/catalog'
 import {
   useAdminProducts,
-  useCreateCategory,
-  useDeactivateCategory,
   useDeleteImage,
   useSaveProduct,
   useToggleProduct,
@@ -168,39 +166,6 @@ export default function CatalogManager() {
 
       {editing && (
         <ProductFormModal product={editing === 'new' ? null : editing} categories={categories} onClose={() => setEditing(null)} />
-      )}
-    </div>
-  )
-}
-
-function CategoriesPanel({ categories, loading }: { categories: Category[]; loading: boolean }) {
-  const createCategory = useCreateCategory()
-  const deactivateCategory = useDeactivateCategory()
-  const [name, setName] = useState('')
-  const add = () => {
-    if (!name.trim()) return
-    createCategory.mutate(name.trim(), { onSuccess: () => setName('') })
-  }
-  return (
-    <div className="card" style={{ padding: 18, alignSelf: 'flex-start' }}>
-      <span className="label">Categorías</span>
-      <div style={{ display: 'flex', gap: 6, margin: '12px 0' }}>
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Nueva categoría" />
-        <button className="btn primary" onClick={add} disabled={createCategory.isPending} aria-label="Agregar"><Plus size={16} /></button>
-      </div>
-      {createCategory.isError && <p style={{ color: 'var(--red)', fontSize: 12, marginBottom: 8 }}>{getApiErrorMessage(createCategory.error)}</p>}
-      {loading ? (
-        <Loader2 className="animate-spin" size={18} style={{ color: 'var(--ink-faint)' }} />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {categories.map((c) => (
-            <div key={c.id} className="row" style={{ justifyContent: 'space-between', padding: '6px 8px', borderRadius: 8 }}>
-              <span style={{ fontSize: 14 }}>{c.name}</span>
-              <button onClick={() => deactivateCategory.mutate(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', display: 'inline-flex' }} aria-label="Desactivar"><X size={14} /></button>
-            </div>
-          ))}
-          {categories.length === 0 && <span className="muted" style={{ fontSize: 13 }}>Sin categorías.</span>}
-        </div>
       )}
     </div>
   )
