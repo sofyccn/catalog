@@ -316,7 +316,7 @@ function ProductFormModal({ product, categories, onClose }: { product: Product |
           </div>
 
           <div>
-            <div className="label" style={{ marginBottom: 6 }}>Imágenes</div>
+            <div className="label" style={{ marginBottom: 6 }}>Imágenes del producto</div>
             {product ? (
               <ImagesEditor productId={product.id} />
             ) : (
@@ -351,20 +351,70 @@ function ImagesEditor({ productId }: { productId: string }) {
   const uploadImages = useUploadImages(productId)
   const deleteImage = useDeleteImage(productId)
   const images = detail.data?.images ?? []
+  const [dragOver, setDragOver] = useState(false)
+
+  const uploadFiles = (files: File[]) => {
+    const imgs = files.filter((f) => f.type.startsWith('image/'))
+    if (imgs.length) uploadImages.mutate(imgs)
+  }
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : []
-    if (files.length) uploadImages.mutate(files)
+    if (files.length) uploadFiles(files)
     e.target.value = ''
   }
 
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const files = Array.from(e.dataTransfer.files ?? [])
+    if (files.length) uploadFiles(files)
+  }
+
+  // Global paste handler: whenever the images editor is on screen, listen for
+  // Ctrl/Cmd+V and grab image blobs from the clipboard. Only prevents default
+  // when we actually find images, so pasting text into inputs still works.
+  useEffect(() => {
+    const handler = (e: ClipboardEvent) => {
+      if (!e.clipboardData) return
+      const files: File[] = []
+      for (const item of Array.from(e.clipboardData.items)) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          const f = item.getAsFile()
+          if (f) files.push(f)
+        }
+      }
+      if (files.length) {
+        e.preventDefault()
+        uploadFiles(files)
+      }
+    }
+    window.addEventListener('paste', handler)
+    return () => window.removeEventListener('paste', handler)
+    // uploadImages is stable across renders; no deps needed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId])
+
   return (
-    <div>
+    <div
+      onDrop={onDrop}
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+      onDragLeave={() => setDragOver(false)}
+      style={{
+        borderRadius: 12,
+        transition: 'background 120ms ease, outline-color 120ms ease',
+        outline: dragOver ? '2px dashed var(--green)' : '2px dashed transparent',
+        outlineOffset: 4,
+        background: dragOver ? 'var(--green-tint)' : 'transparent',
+        padding: dragOver ? 4 : 0,
+      }}
+    >
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {images.map((img) => (
           <div key={img.id} style={{ position: 'relative', width: 72, height: 72, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--line)' }}>
             <img src={img.urlThumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <button
+              type="button"
               onClick={() => deleteImage.mutate(img.id)}
               aria-label="Eliminar imagen"
               style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.6)', color: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
@@ -379,6 +429,11 @@ function ImagesEditor({ productId }: { productId: string }) {
           <input type="file" accept="image/*" multiple onChange={onPick} style={{ display: 'none' }} />
         </label>
       </div>
+      <p className="faint" style={{ fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>
+        Puedes añadir <b>varias imágenes por producto</b>. Súbelas con el botón,
+        <b> arrástralas</b> a esta zona, o <b>pégalas del portapapeles</b> (Ctrl/Cmd + V)
+        — por ejemplo una captura de pantalla o una foto copiada de WhatsApp.
+      </p>
       {uploadImages.isError && <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 6 }}>{getApiErrorMessage(uploadImages.error)}</p>}
     </div>
   )
