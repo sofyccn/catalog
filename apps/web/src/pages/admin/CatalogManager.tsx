@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, ImagePlus, Loader2, Pencil, Plus, Search, X } from 'lucide-react'
+import { ArrowLeft, Loader2, Pencil, Plus, Search, UploadCloud, X } from 'lucide-react'
 import { WorkerHeader } from '../../components/WorkerHeader'
 import { ProductThumb } from '../../components/ProductThumb'
 import {
@@ -337,65 +337,120 @@ function ImagesEditor({ productId }: { productId: string }) {
   // Global paste handler: whenever the images editor is on screen, listen for
   // Ctrl/Cmd+V and grab image blobs from the clipboard. Only prevents default
   // when we actually find images, so pasting text into inputs still works.
+  // Falls back to the async Clipboard API for apps (LibreOffice, some Word
+  // versions) that don't expose the image in the paste event but keep it
+  // readable via navigator.clipboard.read().
   useEffect(() => {
-    const handler = (e: ClipboardEvent) => {
-      if (!e.clipboardData) return
+    const handler = async (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items
       const files: File[] = []
-      for (const item of Array.from(e.clipboardData.items)) {
-        if (item.kind === 'file' && item.type.startsWith('image/')) {
-          const f = item.getAsFile()
-          if (f) files.push(f)
+      if (items) {
+        for (const item of Array.from(items)) {
+          if (item.kind === 'file' && item.type.startsWith('image/')) {
+            const f = item.getAsFile()
+            if (f) files.push(f)
+          }
         }
       }
       if (files.length) {
         e.preventDefault()
         uploadFiles(files)
+        return
+      }
+      // Only bother with the async API if the event didn't reveal anything AND
+      // it looks like the user actually meant to paste content into the editor
+      // (not into a focused text input).
+      const target = e.target as HTMLElement | null
+      const isTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      if (isTextInput) return
+      if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') return
+      try {
+        const clipItems = await navigator.clipboard.read()
+        const fallback: File[] = []
+        for (const item of clipItems) {
+          for (const type of item.types) {
+            if (type.startsWith('image/')) {
+              const blob = await item.getType(type)
+              fallback.push(new File([blob], `pegada-${Date.now()}.${type.split('/')[1] ?? 'png'}`, { type }))
+            }
+          }
+        }
+        if (fallback.length) uploadFiles(fallback)
+      } catch {
+        // Permission denied or unsupported — nothing to do.
       }
     }
     window.addEventListener('paste', handler)
     return () => window.removeEventListener('paste', handler)
-    // uploadImages is stable across renders; no deps needed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId])
 
   return (
-    <div
-      onDrop={onDrop}
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-      onDragLeave={() => setDragOver(false)}
-      style={{
-        borderRadius: 12,
-        transition: 'background 120ms ease, outline-color 120ms ease',
-        outline: dragOver ? '2px dashed var(--green)' : '2px dashed transparent',
-        outlineOffset: 4,
-        background: dragOver ? 'var(--green-tint)' : 'transparent',
-        padding: dragOver ? 4 : 0,
-      }}
-    >
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {images.map((img) => (
-          <div key={img.id} style={{ position: 'relative', width: 72, height: 72, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--line)' }}>
-            <img src={img.urlThumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            <button
-              type="button"
-              onClick={() => deleteImage.mutate(img.id)}
-              aria-label="Eliminar imagen"
-              style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.6)', color: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              <X size={12} />
-            </button>
-          </div>
-        ))}
-        <label style={{ width: 72, height: 72, borderRadius: 8, border: '1.5px dashed var(--line)', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--ink-faint)', gap: 2 }}>
-          {uploadImages.isPending ? <Loader2 className="animate-spin" size={18} /> : <ImagePlus size={18} />}
-          <span style={{ fontSize: 10 }}>Subir</span>
-          <input type="file" accept="image/*" multiple onChange={onPick} style={{ display: 'none' }} />
-        </label>
-      </div>
-      <p className="faint" style={{ fontSize: 11, marginTop: 8, lineHeight: 1.4 }}>
-        Puedes añadir <b>varias imágenes por producto</b>. Súbelas con el botón,
-        <b> arrástralas</b> a esta zona, o <b>pégalas del portapapeles</b> (Ctrl/Cmd + V)
-        — por ejemplo una captura de pantalla o una foto copiada de WhatsApp.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Existing images grid (only shown when there are images) */}
+      {images.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {images.map((img) => (
+            <div key={img.id} style={{ position: 'relative', width: 82, height: 82, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--line)' }}>
+              <img src={img.urlThumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <button
+                type="button"
+                onClick={() => deleteImage.mutate(img.id)}
+                aria-label="Eliminar imagen"
+                style={{ position: 'absolute', top: 3, right: 3, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.65)', color: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Big drop zone — always visible so drag-and-drop feels obvious */}
+      <label
+        onDrop={onDrop}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+        onDragLeave={() => setDragOver(false)}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          padding: '28px 20px',
+          borderRadius: 14,
+          border: `2px dashed ${dragOver ? 'var(--green)' : 'var(--line)'}`,
+          background: dragOver ? 'var(--green-tint)' : 'var(--bg-tint)',
+          cursor: 'pointer',
+          textAlign: 'center',
+          transition: 'border-color 120ms ease, background 120ms ease',
+        }}
+      >
+        {uploadImages.isPending ? (
+          <>
+            <Loader2 className="animate-spin" size={28} style={{ color: 'var(--green)' }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Subiendo…</span>
+          </>
+        ) : (
+          <>
+            <UploadCloud size={30} style={{ color: 'var(--green)' }} />
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+                {dragOver ? 'Suelta la imagen aquí' : 'Arrastra imágenes aquí'}
+              </div>
+              <div className="muted" style={{ fontSize: 12, marginTop: 3 }}>
+                o click para elegir · puedes subir varias a la vez
+              </div>
+            </div>
+            <input type="file" accept="image/*" multiple onChange={onPick} style={{ display: 'none' }} />
+          </>
+        )}
+      </label>
+
+      <p className="faint" style={{ fontSize: 11, marginTop: 2, lineHeight: 1.5 }}>
+        <b>Tip:</b> también puedes pegar (<code style={{ fontSize: 11 }}>Ctrl+V</code>) una <b>captura de pantalla</b>
+        o una imagen que hayas copiado con <b>botón derecho → Copiar imagen</b> en la web.
+        Copiar-pegar directo desde un archivo del explorador no funciona por seguridad del navegador — <b>usa arrastrar</b> para eso.
       </p>
       {uploadImages.isError && <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 6 }}>{getApiErrorMessage(uploadImages.error)}</p>}
     </div>
