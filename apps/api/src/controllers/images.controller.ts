@@ -15,8 +15,39 @@ const SIZES = [
 const MAX_REMOTE_BYTES = 8 * 1024 * 1024 // same ceiling as the multipart upload
 const MAX_REMOTE_IMAGES = 5
 
+/**
+ * Crop a uniform (white or transparent) border off the source.
+ *
+ * Pasting from Word/Canva hands us the picture sitting on a chunk of blank
+ * page, so the padding is baked into the bitmap — the grid then renders it as
+ * a small photo floating in white. Real photographs have noisy edges and are
+ * left untouched, so this is a no-op for anything dragged in from a camera.
+ */
+async function trimBlankBorder(source: Buffer): Promise<Buffer> {
+  try {
+    const meta = await sharp(source).metadata()
+    // Canva pads with transparency rather than white. Flattening onto white
+    // first lets one trim pass handle both, and matches how the catalog renders
+    // these anyway (the image tiles sit on a white card).
+    const flattened = meta.hasAlpha
+      ? await sharp(source).flatten({ background: '#ffffff' }).toBuffer()
+      : source
+    // The blank area is usually to the right/below the picture, so the
+    // top-left pixel sharp samples by default is the photo itself — the
+    // background has to be named explicitly or nothing gets cropped.
+    const trimmed = await sharp(flattened).trim({ background: '#ffffff', threshold: 12 }).toBuffer()
+    // A near-blank image can trim away to almost nothing; keep the original.
+    const out = await sharp(trimmed).metadata()
+    if (!out.width || !out.height || out.width < 32 || out.height < 32) return source
+    return trimmed
+  } catch {
+    return source
+  }
+}
+
 /** Resize + store one source buffer in all sizes and persist the row. */
-async function storeImage(productId: string, source: Buffer, position: number) {
+async function storeImage(productId: string, rawSource: Buffer, position: number) {
+  const source = await trimBlankBorder(rawSource)
   const base = `products/${productId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const urls: Record<string, string> = {}
   for (const s of SIZES) {
