@@ -19,6 +19,7 @@ import {
   useSaveProduct,
   useToggleProduct,
   useUploadImages,
+  useUploadImagesFromUrls,
   type ProductInput,
 } from '../../api/admin'
 import { getApiErrorMessage } from '../../lib/api'
@@ -309,12 +310,39 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
+/** Pull every <img src> out of a clipboard text/html payload, in order. */
+function extractImageSources(html: string): string[] {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  return Array.from(doc.querySelectorAll('img'))
+    .map((img) => img.getAttribute('src')?.trim() ?? '')
+    .filter(Boolean)
+}
+
+/** Turn a `data:image/png;base64,…` clipboard source into an uploadable File. */
+function fileFromDataUrl(dataUrl: string): File | null {
+  const match = dataUrl.match(/^data:(image\/[\w.+-]+);base64,(.*)$/)
+  const mime = match?.[1]
+  const base64 = match?.[2]
+  if (!mime || !base64) return null
+  try {
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return new File([bytes], `pegada-${Date.now()}.${mime.split('/')[1] ?? 'png'}`, { type: mime })
+  } catch {
+    return null
+  }
+}
+
 function ImagesEditor({ productId }: { productId: string }) {
   const detail = useProduct(productId)
   const uploadImages = useUploadImages(productId)
+  const uploadFromUrls = useUploadImagesFromUrls(productId)
   const deleteImage = useDeleteImage(productId)
   const images = detail.data?.images ?? []
   const [dragOver, setDragOver] = useState(false)
+  const [pasteHint, setPasteHint] = useState<string | null>(null)
+  const busy = uploadImages.isPending || uploadFromUrls.isPending
 
   const uploadFiles = (files: File[]) => {
     const imgs = files.filter((f) => f.type.startsWith('image/'))
@@ -330,22 +358,57 @@ function ImagesEditor({ productId }: { productId: string }) {
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragOver(false)
+    setPasteHint(null)
+
+    // Dragging a file from the explorer: real File objects.
     const files = Array.from(e.dataTransfer.files ?? [])
-    if (files.length) uploadFiles(files)
+    if (files.length) {
+      uploadFiles(files)
+      return
+    }
+
+    // Dragging an image out of another browser tab (Canva, Google Images…):
+    // no file, just the image's address. Same handling as a paste.
+    const uriList = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain')
+    const html = e.dataTransfer.getData('text/html')
+    const sources = [
+      ...uriList.split(/[\r\n]+/).map((s) => s.trim()).filter((s) => s && !s.startsWith('#')),
+      ...(html ? extractImageSources(html) : []),
+    ]
+
+    const dataUrls = sources.filter((s) => s.startsWith('data:image/'))
+    if (dataUrls.length) {
+      uploadFiles(dataUrls.map(fileFromDataUrl).filter((f): f is File => f !== null))
+      return
+    }
+    const remote = sources.filter((s) => /^https?:/i.test(s))
+    if (remote.length) {
+      uploadFromUrls.mutate(remote.slice(0, 5))
+      return
+    }
+    if (sources.length) {
+      setPasteHint('No se pudo leer esa imagen. Descárgala a tu ordenador y arrástrala desde ahí.')
+    }
   }
 
   // Global paste handler: whenever the images editor is on screen, listen for
-  // Ctrl/Cmd+V and grab image blobs from the clipboard. Only prevents default
-  // when we actually find images, so pasting text into inputs still works.
-  // Falls back to the async Clipboard API for apps (LibreOffice, some Word
-  // versions) that don't expose the image in the paste event but keep it
-  // readable via navigator.clipboard.read().
+  // Ctrl/Cmd+V and pull images out of the clipboard. Only prevents default when
+  // we actually find something, so pasting text into inputs still works.
+  //
+  // Three shapes of clipboard content, in order of preference:
+  //  1. A real bitmap (screenshots, Word/PowerPoint desktop, "Copiar imagen"
+  //     in a browser) — arrives as a file item we can upload directly.
+  //  2. Only text/html with an <img> — what Canva, Google Docs and Word Online
+  //     put on the clipboard. data: URLs we decode locally; http(s) URLs go to
+  //     the API, which downloads them server-side (the CDN would block us).
+  //  3. text/html whose <img> points at file:/// — Word desktop on Windows
+  //     sometimes does this. The browser can't read local files, so we say so.
   useEffect(() => {
     const handler = async (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items
+      const data = e.clipboardData
       const files: File[] = []
-      if (items) {
-        for (const item of Array.from(items)) {
+      if (data) {
+        for (const item of Array.from(data.items)) {
           if (item.kind === 'file' && item.type.startsWith('image/')) {
             const f = item.getAsFile()
             if (f) files.push(f)
@@ -354,15 +417,45 @@ function ImagesEditor({ productId }: { productId: string }) {
       }
       if (files.length) {
         e.preventDefault()
+        setPasteHint(null)
         uploadFiles(files)
         return
       }
-      // Only bother with the async API if the event didn't reveal anything AND
-      // it looks like the user actually meant to paste content into the editor
-      // (not into a focused text input).
+
+      // Anything below is a fallback, and shouldn't hijack a normal text paste
+      // into a focused field.
       const target = e.target as HTMLElement | null
-      const isTextInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-      if (isTextInput) return
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+
+      const html = data?.getData('text/html') ?? ''
+      const sources = html ? extractImageSources(html) : []
+      // A bare URL copied from the address bar counts too.
+      const plain = (data?.getData('text/plain') ?? '').trim()
+      if (!sources.length && /^https?:\/\/\S+$/i.test(plain)) sources.push(plain)
+
+      if (sources.length) {
+        e.preventDefault()
+        const dataUrls = sources.filter((s) => s.startsWith('data:image/'))
+        const remote = sources.filter((s) => /^https?:/i.test(s))
+        if (dataUrls.length) {
+          setPasteHint(null)
+          uploadFiles(dataUrls.map(fileFromDataUrl).filter((f): f is File => f !== null))
+          return
+        }
+        if (remote.length) {
+          setPasteHint(null)
+          uploadFromUrls.mutate(remote.slice(0, 5))
+          return
+        }
+        // Left over: file:/// (Word desktop links to a local temp file) and
+        // blob: (Canva sometimes does this) — neither is readable from a web
+        // page, so tell the user what does work instead of failing silently.
+        setPasteHint('No se pudo leer esa imagen del portapapeles. Descárgala y arrástrala aquí, o cópiala con botón derecho → Copiar imagen.')
+        return
+      }
+
+      // Last resort: some apps (LibreOffice, certain Word builds) hide the
+      // bitmap from the paste event but expose it via the async Clipboard API.
       if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') return
       try {
         const clipItems = await navigator.clipboard.read()
@@ -375,7 +468,10 @@ function ImagesEditor({ productId }: { productId: string }) {
             }
           }
         }
-        if (fallback.length) uploadFiles(fallback)
+        if (fallback.length) {
+          setPasteHint(null)
+          uploadFiles(fallback)
+        }
       } catch {
         // Permission denied or unsupported — nothing to do.
       }
@@ -426,7 +522,7 @@ function ImagesEditor({ productId }: { productId: string }) {
           transition: 'border-color 120ms ease, background 120ms ease',
         }}
       >
-        {uploadImages.isPending ? (
+        {busy ? (
           <>
             <Loader2 className="animate-spin" size={28} style={{ color: 'var(--green)' }} />
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Subiendo…</span>
@@ -448,11 +544,14 @@ function ImagesEditor({ productId }: { productId: string }) {
       </label>
 
       <p className="faint" style={{ fontSize: 11, marginTop: 2, lineHeight: 1.5 }}>
-        <b>Tip:</b> también puedes pegar (<code style={{ fontSize: 11 }}>Ctrl+V</code>) una <b>captura de pantalla</b>
-        o una imagen que hayas copiado con <b>botón derecho → Copiar imagen</b> en la web.
-        Copiar-pegar directo desde un archivo del explorador no funciona por seguridad del navegador — <b>usa arrastrar</b> para eso.
+        <b>Tip:</b> también puedes pegar (<code style={{ fontSize: 11 }}>Ctrl+V</code>) imágenes copiadas desde
+        <b> Canva</b>, <b>Word</b>, <b>Google Docs</b> o una captura de pantalla.
+        También puedes <b>arrastrar</b> la imagen directamente desde otra pestaña (Canva, Google Imágenes…) o desde una carpeta.
+        Lo que no funciona es copiar-pegar un archivo desde el explorador — el navegador no lo permite.
       </p>
+      {pasteHint && <p style={{ color: 'var(--ink)', fontSize: 12, marginTop: 6 }}>{pasteHint}</p>}
       {uploadImages.isError && <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 6 }}>{getApiErrorMessage(uploadImages.error)}</p>}
+      {uploadFromUrls.isError && <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 6 }}>{getApiErrorMessage(uploadFromUrls.error)}</p>}
     </div>
   )
 }

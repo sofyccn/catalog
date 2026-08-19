@@ -90,6 +90,23 @@ export function useUploadImages(productId: string) {
   })
 }
 
+/**
+ * Ingest images the clipboard only exposed as remote URLs (Canva, Google Docs,
+ * Word Online). The API downloads them server-side, which also avoids CORS.
+ */
+export function useUploadImagesFromUrls(productId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (urls: string[]) =>
+      (await api.post(`/products/${productId}/images/from-url`, { urls })).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['product', productId] })
+      qc.invalidateQueries({ queryKey: ['admin-products'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+    },
+  })
+}
+
 export function useDeleteImage(productId: string) {
   const qc = useQueryClient()
   return useMutation({

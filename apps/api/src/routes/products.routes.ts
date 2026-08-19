@@ -22,4 +22,5 @@ productsRouter.patch('/:id', requireRole('ADMIN'), asyncHandler(productsControll
 
 // Images (admin): multipart upload (sharp -> R2) + delete.
 productsRouter.post('/:id/images', requireRole('ADMIN'), upload.array('images', 5), asyncHandler(imagesController.uploadImages))
+productsRouter.post('/:id/images/from-url', requireRole('ADMIN'), asyncHandler(imagesController.uploadImagesFromUrls))
 productsRouter.delete('/:id/images/:imageId', requireRole('ADMIN'), asyncHandler(imagesController.deleteImage))
