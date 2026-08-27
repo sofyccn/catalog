@@ -422,27 +422,33 @@ function ImagesEditor({ productId }: { productId: string }) {
         return
       }
 
-      // Anything below is a fallback, and shouldn't hijack a normal text paste
-      // into a focused field.
+      // The edit modal is full of text inputs, so the paste almost always lands
+      // on one of them. That must not stop us from reading an image out of the
+      // clipboard — these inputs can't hold an image anyway — but it does mean
+      // we can't treat bare text as a URL, or pasting a link into a field would
+      // upload it as a photo.
       const target = e.target as HTMLElement | null
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      const inTextField = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
 
       const html = data?.getData('text/html') ?? ''
       const sources = html ? extractImageSources(html) : []
-      // A bare URL copied from the address bar counts too.
-      const plain = (data?.getData('text/plain') ?? '').trim()
-      if (!sources.length && /^https?:\/\/\S+$/i.test(plain)) sources.push(plain)
+      if (!sources.length && !inTextField) {
+        // A bare URL copied from the address bar counts too.
+        const plain = (data?.getData('text/plain') ?? '').trim()
+        if (/^https?:\/\/\S+$/i.test(plain)) sources.push(plain)
+      }
 
       if (sources.length) {
-        e.preventDefault()
         const dataUrls = sources.filter((s) => s.startsWith('data:image/'))
         const remote = sources.filter((s) => /^https?:/i.test(s))
         if (dataUrls.length) {
+          e.preventDefault()
           setPasteHint(null)
           uploadFiles(dataUrls.map(fileFromDataUrl).filter((f): f is File => f !== null))
           return
         }
         if (remote.length) {
+          e.preventDefault()
           setPasteHint(null)
           uploadFromUrls.mutate(remote.slice(0, 5))
           return
@@ -450,8 +456,16 @@ function ImagesEditor({ productId }: { productId: string }) {
         // Left over: file:/// (Word desktop links to a local temp file) and
         // blob: (Canva sometimes does this) — neither is readable from a web
         // page, so tell the user what does work instead of failing silently.
-        setPasteHint('No se pudo leer esa imagen del portapapeles. Descárgala y arrástrala aquí, o cópiala con botón derecho → Copiar imagen.')
+        setPasteHint(`No se pudo leer esa imagen del portapapeles (origen: ${sources[0]?.slice(0, 24)}…). Descárgala y arrástrala aquí.`)
         return
+      }
+
+      if (inTextField) return
+
+      // Nothing usable in the event itself. Leave a breadcrumb naming what the
+      // clipboard actually carried — otherwise a failed paste is invisible.
+      if (data?.types.length) {
+        setPasteHint(`No se encontró ninguna imagen en lo copiado (el portapapeles trae: ${data.types.join(', ')}).`)
       }
 
       // Last resort: some apps (LibreOffice, certain Word builds) hide the
