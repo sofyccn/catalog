@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Ban, Check, ChevronRight, CircleCheck, Clock, Loader2, X } from 'lucide-react'
 import { Header } from '../components/Header'
 import { StatusTag, shortDate } from '../components/WorkerHeader'
@@ -11,10 +10,14 @@ import {
   type RequestItemDetail,
 } from '../api/requests'
 
+/** /pedido lists the client's orders; /pedido/:id shows one. Being a real URL
+ *  means ScrollToTop runs, the phone's back button works, and emails can link
+ *  straight to an order. */
 export default function MyOrder() {
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  if (selectedId) return <OrderDetail id={selectedId} onBack={() => setSelectedId(null)} />
-  return <OrdersList onSelect={setSelectedId} />
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  if (id) return <OrderDetail id={id} onBack={() => navigate('/pedido')} />
+  return <OrdersList onSelect={(orderId) => navigate(`/pedido/${orderId}`)} />
 }
 
 function OrdersList({ onSelect }: { onSelect: (id: string) => void }) {

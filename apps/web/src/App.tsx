@@ -41,6 +41,7 @@ export default function App() {
           <Route path="/producto/:id" element={<ProductDetail />} />
           <Route path="/carrito" element={<Cart />} />
           <Route path="/pedido" element={<MyOrder />} />
+          <Route path="/pedido/:id" element={<MyOrder />} />
         </Route>
       </Route>
 

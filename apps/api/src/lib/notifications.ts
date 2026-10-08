@@ -52,7 +52,7 @@ export async function notifyProformaReady(requestId: string): Promise<void> {
       html: layout(
         'Disponibilidad confirmada',
         'El despachador revisó tu pedido. Entra para ver qué está disponible y decidir si aceptas, rechazas o cancelas.',
-        { label: 'Ver mi pedido', href: `${appUrl()}/pedido` },
+        { label: 'Ver mi pedido', href: `${appUrl()}/pedido/${request.id}` },
       ),
     })
   } catch (err) {
