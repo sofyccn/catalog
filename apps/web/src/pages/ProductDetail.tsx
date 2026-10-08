@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Loader2, Minus, Plus, ShoppingCart, X, ZoomIn } from 'lucide-react'
 import { Header } from '../components/Header'
@@ -258,7 +259,10 @@ function Lightbox({
   const current = images[idx]
   if (!current) return null
 
-  return (
+  // Portal to <body>: the page's `.fade-up` animation leaves a transform on
+  // <main>, which would make this position:fixed overlay relative to <main>
+  // instead of the viewport (image ends up off-screen on long pages / phones).
+  return createPortal(
     <div
       onClick={onClose}
       role="dialog"
@@ -271,7 +275,7 @@ function Lightbox({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1000,
-        padding: 24,
+        padding: 'clamp(12px, 4vw, 72px)',
         cursor: 'zoom-out',
       }}
     >
@@ -368,7 +372,8 @@ function Lightbox({
           </div>
         </>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -384,6 +389,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
   const drag = useRef<{ x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null)
+  const isTouch = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 
   /** Keep the zoomed image covering the box so it can't be dragged off-screen. */
   const clamp = (x: number, y: number, s: number) => {
@@ -454,8 +460,8 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
       onClick={(e) => e.stopPropagation()}
       onWheel={onWheel}
       style={{
-        width: '92vw',
-        height: '88vh',
+        width: '100%',
+        height: '100%',
         overflow: 'hidden',
         borderRadius: 8,
         position: 'relative',
@@ -499,7 +505,7 @@ function ZoomableImage({ src, alt }: { src: string; alt: string }) {
             whiteSpace: 'nowrap',
           }}
         >
-          Haz clic o usa la rueda del mouse para acercar
+          {isTouch ? 'Toca la imagen para acercar' : 'Haz clic o usa la rueda del mouse para acercar'}
         </div>
       )}
     </div>
