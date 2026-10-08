@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Filter, LayoutGrid, List, Loader2, Plus, Search, X } from 'lucide-react'
+import { Filter, Loader2, Plus, Search, X } from 'lucide-react'
 import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
 import {
@@ -34,7 +34,6 @@ export default function Catalog() {
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [isNew, setIsNew] = useState(false)
-  const [view, setView] = useState<'list' | 'grid'>('grid')
   const [limit, setLimit] = useState(PAGE_SIZE)
   const [toast, setToast] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -185,16 +184,6 @@ export default function Catalog() {
                 {total} {total === 1 ? 'producto' : 'productos'}
                 {productsQ.isFetching && <Loader2 className="animate-spin" size={16} style={{ color: 'var(--ink-faint)', marginLeft: 10, verticalAlign: 'middle' }} />}
               </h2>
-              <div style={{ display: 'inline-flex', background: 'var(--bg-tint)', borderRadius: 999, padding: 4 }}>
-                {(['grid', 'list'] as const).map((v) => {
-                  const Icon = v === 'grid' ? LayoutGrid : List
-                  return (
-                    <button key={v} onClick={() => setView(v)} aria-label={v} style={{ padding: '6px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', display: 'inline-flex', background: view === v ? 'white' : 'transparent', boxShadow: view === v ? 'var(--shadow-sm)' : 'none' }}>
-                      <Icon size={16} />
-                    </button>
-                  )
-                })}
-              </div>
             </div>
 
             {/* Active chips */}
@@ -222,16 +211,10 @@ export default function Catalog() {
                 <h3 style={{ fontSize: 20, marginBottom: 8 }}>No encontramos productos</h3>
                 <button className="btn primary" onClick={clearAll}>Limpiar filtros</button>
               </div>
-            ) : view === 'grid' ? (
+            ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
                 {products.map((p) => (
                   <ProductCard key={p.id} product={p} onAdd={onAdd} onOpen={() => navigate(`/producto/${p.id}`)} />
-                ))}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {products.map((p) => (
-                  <ProductRow key={p.id} product={p} onAdd={onAdd} onOpen={() => navigate(`/producto/${p.id}`)} />
                 ))}
               </div>
             )}
@@ -345,31 +328,6 @@ function ProductCard({ product, onAdd, onOpen }: ItemProps) {
           <Plus size={14} /> Añadir
         </button>
       </div>
-    </div>
-  )
-}
-
-function ProductRow({ product, onAdd, onOpen }: ItemProps) {
-  return (
-    <div onClick={onOpen} className="card" style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto auto', gap: 20, padding: 14, alignItems: 'center', cursor: 'pointer' }}>
-      <div style={{ width: 120, height: 90, borderRadius: 10, overflow: 'hidden' }}>
-        <ProductThumb src={product.images?.[0]?.urlThumb} alt={product.name} />
-      </div>
-      <div>
-        <div className="row" style={{ gap: 8, marginBottom: 4 }}>
-          <span className="tag muted">{product.code}</span>
-          {product.brand && <span className="muted" style={{ fontSize: 13 }}>{product.brand.name}</span>}
-          {product.isNew && <NewBadge />}
-        </div>
-        <h3 style={{ fontSize: 18 }}>{product.name}</h3>
-        {product.compatibleModels && product.compatibleModels.length > 0 && (
-          <div className="faint" style={{ fontSize: 12, marginTop: 2 }}>Compatible: {product.compatibleModels.map((m) => m.model.code).slice(0, 5).join(', ')}</div>
-        )}
-      </div>
-      <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--green)', textAlign: 'right' }}>{formatPrice(product.price)}</span>
-      <button onClick={(e) => { e.stopPropagation(); onAdd(product) }} className="btn primary" style={{ padding: '10px 18px' }}>
-        <Plus size={16} /> Añadir
-      </button>
     </div>
   )
 }
