@@ -40,7 +40,7 @@ export default function ProductDetail() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Header />
       {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0', minHeight: '70vh' }}>
           <Loader2 className="animate-spin" size={28} style={{ color: 'var(--ink-faint)' }} />
         </div>
       ) : !product ? (

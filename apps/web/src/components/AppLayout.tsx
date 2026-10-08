@@ -5,6 +5,7 @@ import { FullScreenSpinner } from './Spinner'
 import Pending from '../pages/Pending'
 import Rejected from '../pages/Rejected'
 import { Footer } from './landing/parts'
+import { ScrollToTop } from './ScrollToTop'
 
 /**
  * Gate for the whole authenticated area:
@@ -30,6 +31,7 @@ export function AppLayout() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <ScrollToTop />
       <div style={{ flex: 1 }}>
         <Outlet />
       </div>
