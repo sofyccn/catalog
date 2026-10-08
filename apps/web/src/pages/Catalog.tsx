@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Filter, Loader2, Plus, Search, X } from 'lucide-react'
 import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
@@ -14,6 +14,8 @@ import { useCart } from '../stores/cart'
 
 const PAGE_SIZE = 24
 
+type ProductMode = 'all' | 'machines' | 'parts'
+
 function useDebounced<T>(value: T, ms = 300): T {
   const [v, setV] = useState(value)
   useEffect(() => {
@@ -27,18 +29,54 @@ export default function Catalog() {
   const navigate = useNavigate()
   const addToCart = useCart((s) => s.add)
 
-  const [query, setQuery] = useState('')
+  // Filters live in the URL (?q=&tipo=&marca=&min=&max=&nuevos=&n=) so going back
+  // from a product restores the same list, and a filtered list can be shared.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const debouncedQuery = searchParams.get('q') ?? ''
   // Top-level toggle: every product is either a complete machine or a spare part.
-  const [productMode, setProductMode] = useState<'all' | 'machines' | 'parts'>('all')
-  const [brandIds, setBrandIds] = useState<string[]>([])
-  const [minPrice, setMinPrice] = useState('')
-  const [maxPrice, setMaxPrice] = useState('')
-  const [isNew, setIsNew] = useState(false)
-  const [limit, setLimit] = useState(PAGE_SIZE)
+  const tipo = searchParams.get('tipo')
+  const productMode: ProductMode = tipo === 'machines' || tipo === 'parts' ? tipo : 'all'
+  const brandIds = searchParams.getAll('marca')
+  const minPrice = searchParams.get('min') ?? ''
+  const maxPrice = searchParams.get('max') ?? ''
+  const isNew = searchParams.get('nuevos') === '1'
+  const limit = Math.max(PAGE_SIZE, Number(searchParams.get('n')) || PAGE_SIZE)
+
+  /** Apply filter changes to the URL. Any filter change resets paging (drops `n`). */
+  const updateParams = (changes: Record<string, string | string[] | null>, keepPaging = false) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        for (const [key, value] of Object.entries(changes)) {
+          next.delete(key)
+          if (Array.isArray(value)) value.forEach((v) => next.append(key, v))
+          else if (value) next.set(key, value)
+        }
+        if (!keepPaging) next.delete('n')
+        return next
+      },
+      { replace: true },
+    )
+  }
+  const setProductMode = (mode: ProductMode) => updateParams({ tipo: mode === 'all' ? null : mode })
+  const setMinPrice = (v: string) => updateParams({ min: v || null })
+  const setMaxPrice = (v: string) => updateParams({ max: v || null })
+  const setIsNew = (v: boolean) => updateParams({ nuevos: v ? '1' : null })
+
+  // The search box is typed into locally and committed to the URL once the user pauses.
+  const [query, setQueryInput] = useState(debouncedQuery)
+  const typedQuery = useDebounced(query.trim(), 300)
+  useEffect(() => {
+    if (typedQuery !== (searchParams.get('q') ?? '')) updateParams({ q: typedQuery || null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typedQuery])
+  const setQuery = (v: string) => {
+    setQueryInput(v)
+    if (!v) updateParams({ q: null })
+  }
+
   const [toast, setToast] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
-
-  const debouncedQuery = useDebounced(query.trim(), 300)
 
   const params: ProductQuery = {
     q: debouncedQuery.length >= 2 ? debouncedQuery : undefined,
@@ -51,11 +89,6 @@ export default function Catalog() {
     limit,
   }
   const productsQ = useProducts(params)
-
-  // Reset paging when any filter changes.
-  useEffect(() => {
-    setLimit(PAGE_SIZE)
-  }, [debouncedQuery, productMode, brandIds, minPrice, maxPrice, isNew])
 
   const data = productsQ.data
   const products = data?.data ?? []
@@ -70,15 +103,11 @@ export default function Catalog() {
 
   const toggleBrand = (id: string | null) => {
     if (!id) return
-    setBrandIds((cur) => (cur.includes(id) ? cur.filter((b) => b !== id) : [...cur, id]))
+    updateParams({ marca: brandIds.includes(id) ? brandIds.filter((b) => b !== id) : [...brandIds, id] })
   }
   const clearAll = () => {
-    setQuery('')
-    setProductMode('all')
-    setBrandIds([])
-    setMinPrice('')
-    setMaxPrice('')
-    setIsNew(false)
+    setQueryInput('')
+    setSearchParams({}, { replace: true })
   }
   const hasFilters =
     !!debouncedQuery || productMode !== 'all' || brandIds.length > 0 || !!minPrice || !!maxPrice || isNew
@@ -99,10 +128,10 @@ export default function Catalog() {
         <section style={{ background: 'var(--green-deep)', color: 'white', padding: '40px 0' }}>
           <div className="container">
             <span className="label" style={{ color: 'var(--amber-bright)', letterSpacing: '0.15em' }}>
-              Catálogo · Importadora Cobo
+              Importadora Cobo
             </span>
             <h1 style={{ fontSize: 44, marginTop: 8, color: 'white' }}>
-              El amigo del <em style={{ color: 'var(--amber-bright)', fontStyle: 'italic' }}>agricultor</em>
+              El amigo del agricultor
             </h1>
             <div style={{ position: 'relative', maxWidth: 560, marginTop: 16 }}>
               <Search size={18} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-faint)' }} />
@@ -160,7 +189,7 @@ export default function Catalog() {
             <FacetSection title="Precio (USD)">
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <input className="input" type="number" min={0} value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder={facets ? String(Math.floor(facets.priceRange.min)) : 'mín'} />
-                <span className="faint">—</span>
+                <span className="faint">a</span>
                 <input className="input" type="number" min={0} value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder={facets ? String(Math.ceil(facets.priceRange.max)) : 'máx'} />
               </div>
             </FacetSection>
@@ -196,7 +225,11 @@ export default function Catalog() {
                 {brandIds.map((b) => (
                   <Chip key={b} onClear={() => toggleBrand(b)}>{facetName(facets?.brands, b) ?? 'Marca'}</Chip>
                 ))}
-                {(minPrice || maxPrice) && <Chip onClear={() => { setMinPrice(''); setMaxPrice('') }}>${minPrice || '0'} – ${maxPrice || '∞'}</Chip>}
+                {(minPrice || maxPrice) && (
+                  <Chip onClear={() => { setMinPrice(''); setMaxPrice('') }}>
+                    {minPrice && maxPrice ? `$${minPrice} a $${maxPrice}` : minPrice ? `Desde $${minPrice}` : `Hasta $${maxPrice}`}
+                  </Chip>
+                )}
                 {isNew && <Chip onClear={() => setIsNew(false)}>Nuevos</Chip>}
               </div>
             )}
@@ -207,7 +240,6 @@ export default function Catalog() {
               </div>
             ) : products.length === 0 ? (
               <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 40, marginBottom: 8 }}>🌾</div>
                 <h3 style={{ fontSize: 20, marginBottom: 8 }}>No encontramos productos</h3>
                 <button className="btn primary" onClick={clearAll}>Limpiar filtros</button>
               </div>
@@ -221,7 +253,7 @@ export default function Catalog() {
 
             {products.length < total && (
               <div style={{ textAlign: 'center', marginTop: 28 }}>
-                <button className="btn ghost" onClick={() => setLimit((l) => l + PAGE_SIZE)} disabled={productsQ.isFetching}>
+                <button className="btn ghost" onClick={() => updateParams({ n: String(limit + PAGE_SIZE) }, true)} disabled={productsQ.isFetching}>
                   Cargar más ({total - products.length} restantes)
                 </button>
               </div>
@@ -249,7 +281,7 @@ function FacetSection({ title, children }: { title: string; children: React.Reac
 }
 
 function FacetList({ facets, selected, onToggle, multi }: { facets?: Facet[]; selected: string[]; onToggle: (id: string | null) => void; multi?: boolean }) {
-  if (!facets || facets.length === 0) return <span className="faint" style={{ fontSize: 13 }}>—</span>
+  if (!facets || facets.length === 0) return <span className="faint" style={{ fontSize: 13 }}>Sin opciones</span>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 220, overflowY: 'auto' }}>
       {facets.map((f) => {

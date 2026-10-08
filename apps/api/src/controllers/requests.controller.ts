@@ -50,8 +50,14 @@ export async function create(req: Request, res: Response) {
   const byProduct = new Map<string, number>()
   for (const it of items) byProduct.set(it.productId, (byProduct.get(it.productId) ?? 0) + it.quantity)
   const ids = [...byProduct.keys()]
-  const found = await prisma.product.count({ where: { id: { in: ids }, active: true } })
-  if (found !== ids.length) throw badRequest('Uno o más productos no existen o están inactivos')
+  const found = await prisma.product.findMany({ where: { id: { in: ids }, active: true }, select: { id: true } })
+  if (found.length !== ids.length) {
+    // Tell the client which ones, so it can drop them from a stale cart.
+    const ok = new Set(found.map((p) => p.id))
+    throw badRequest('Algunos productos de tu carrito ya no están disponibles', {
+      unavailableProductIds: ids.filter((id) => !ok.has(id)),
+    })
+  }
 
   const created = await prisma.request.create({
     data: {

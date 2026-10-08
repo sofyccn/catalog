@@ -1,27 +1,44 @@
 import { useClerk } from '@clerk/react'
 import { Ban, LogOut } from 'lucide-react'
 
+/** Shown for REJECTED/inactive accounts, and (with `message`) when the
+ *  account couldn't be loaded at all, which is an error, not a ban. */
 export default function Rejected({ message }: { message?: string }) {
   const { signOut } = useClerk()
+  const isError = Boolean(message)
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-8 text-center shadow-lg">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-          <Ban className="h-6 w-6 text-red-600" />
-        </div>
-        <h1 className="mt-4 text-xl font-semibold text-slate-900">Acceso no autorizado</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          {message ?? 'Tu cuenta no tiene acceso al catálogo. Contacta al administrador si crees que es un error.'}
-        </p>
-        <button
-          type="button"
-          onClick={() => signOut({ redirectUrl: '/login' })}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div className="card fade-up" style={{ width: '100%', maxWidth: 420, padding: 28, textAlign: 'center' }}>
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            margin: '0 auto 16px',
+            borderRadius: '50%',
+            background: 'var(--red-tint)',
+            color: 'var(--red)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <LogOut className="h-4 w-4" />
-          Cerrar sesión
-        </button>
+          <Ban size={24} />
+        </div>
+        <h1 style={{ fontSize: 24 }}>{isError ? 'No pudimos cargar tu cuenta' : 'Acceso no autorizado'}</h1>
+        <p className="muted" style={{ fontSize: 14, marginTop: 8 }}>
+          {message ?? 'Tu cuenta no tiene acceso al catálogo. Si crees que es un error, contacta a Importadora Cobo.'}
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20 }}>
+          {isError && (
+            <button type="button" onClick={() => window.location.reload()} className="btn primary">
+              Intentar de nuevo
+            </button>
+          )}
+          <button type="button" onClick={() => signOut({ redirectUrl: '/login' })} className="btn ghost">
+            <LogOut size={16} /> Cerrar sesión
+          </button>
+        </div>
       </div>
     </div>
   )

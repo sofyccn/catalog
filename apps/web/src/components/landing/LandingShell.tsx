@@ -12,18 +12,17 @@ export function LandingShell({ mode, children }: { mode: Mode; children: ReactNo
     <div className="kl-page">
       <div className="kl-split">
         <section className="kl-hero">
-          <FieldSceneBg />
           <div className="kl-hero__inner">
             <Lockup theme="dark" size={42} tagline sub />
             <div className="kl-hero__content">
               <Kicker onDark>El amigo del agricultor</Kicker>
               <h1 className="kl-display">
                 Todo lo que tu finca necesita,<br />
-                en un solo <em>catálogo</em>.
+                en un solo catálogo.
               </h1>
               <p className="kl-hero__sub">
-                Motosierras, guadañas, fumigadoras, bombas, motores Honda y repuestos —
-                de las marcas que sí aguantan. Arma tu pedido en línea; nosotros
+                Motosierras, guadañas, fumigadoras, bombas, motores Honda y repuestos
+                de marcas que duran. Arma tu pedido en línea y nosotros
                 confirmamos el stock y el precio.
               </p>
             </div>
@@ -45,7 +44,7 @@ export function LandingShell({ mode, children }: { mode: Mode; children: ReactNo
         <div className="kl-section-head">
           <Kicker>Cómo funciona</Kicker>
           <h2 className="kl-h2">
-            Pedir es <em>así de simple</em>
+            Pedir es así de simple
           </h2>
           <p className="kl-section-sub">
             No es una tienda en línea. Es el catálogo de Cobo donde armas tu pedido
@@ -65,7 +64,6 @@ export function LandingShell({ mode, children }: { mode: Mode; children: ReactNo
 function Kicker({ children, onDark = false }: { children: ReactNode; onDark?: boolean }) {
   return (
     <span className={`kl-kicker ${onDark ? 'kl-kicker--dark' : ''}`}>
-      <span className="kl-kicker__rule" />
       {children}
     </span>
   )
@@ -156,16 +154,6 @@ function ApprovalNote({ signupHint = false }: { signupHint?: boolean }) {
           ? 'Después de crear tu cuenta, un administrador revisa y aprueba tu acceso antes de empezar a pedir. Toma menos de un día.'
           : 'Si es tu primera vez, regístrate. Un administrador aprueba tu acceso antes de que empieces a pedir.'}
       </p>
-    </div>
-  )
-}
-
-function FieldSceneBg() {
-  return (
-    <div className="kl-hero__scene" aria-hidden="true">
-      <div className="kl-hero__sun" />
-      <div className="kl-hero__rows" />
-      <div className="kl-hero__horizon" />
     </div>
   )
 }

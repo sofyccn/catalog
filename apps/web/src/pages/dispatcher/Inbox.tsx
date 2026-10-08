@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
-import { WorkerHeader, StatusTag, shortDate } from '../../components/WorkerHeader'
+import { WorkerHeader } from '../../components/WorkerHeader'
+import { StatusTag } from '../../components/StatusTag'
+import { shortDate } from '../../lib/format'
 import { useRequests, type RequestStatus, type RequestSummary } from '../../api/requests'
 
 type TabKey = 'TODOS' | 'SENT' | 'IN_REVIEW' | 'REVIEWED' | 'CLOSED'
@@ -38,7 +40,7 @@ export default function DispatcherInbox() {
         {/* Greeting strip */}
         <div style={{ background: 'var(--green-deep)', color: 'white', padding: '32px 0' }}>
           <div className="container">
-            <span className="label" style={{ color: 'var(--amber-bright)' }}>Panel interno · despacho</span>
+            <span className="label" style={{ color: 'var(--amber-bright)' }}>Despacho</span>
             <h1 style={{ fontSize: 36, color: 'white', marginTop: 4 }}>Pedidos</h1>
             <p style={{ marginTop: 6, color: 'rgba(255,255,255,0.75)', fontSize: 15 }}>
               {kpi('SENT') > 0 ? (
@@ -116,12 +118,11 @@ export default function DispatcherInbox() {
                 >
                   <span className="order-row__id">#{o.id.slice(-8)}</span>
                   <div className="order-row__client">
-                    <div className="order-row__name">{o.client?.fullName ?? '—'}</div>
+                    <div className="order-row__name">{o.client?.fullName ?? 'Sin nombre'}</div>
                     <div className="order-row__email">{o.client?.email}</div>
                   </div>
                   <div className="order-row__meta">
-                    <span>{o._count.items} ítem{o._count.items !== 1 ? 's' : ''}</span>
-                    <span aria-hidden="true">·</span>
+                    <span>{o._count.items} {o._count.items === 1 ? 'producto' : 'productos'},</span>
                     <span>{shortDate(o.createdAt)}</span>
                   </div>
                   <div className="order-row__status">
@@ -134,7 +135,7 @@ export default function DispatcherInbox() {
                       navigate(`/despacho/pedido/${o.id}`)
                     }}
                   >
-                    {o.status === 'SENT' ? 'Revisar →' : 'Ver'}
+                    {o.status === 'SENT' ? 'Revisar' : 'Ver'}
                   </button>
                 </div>
               ))

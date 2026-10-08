@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Building2, Check, Loader2, MapPin, Phone, User, X } from 'lucide-react'
+import { WorkerHeader } from '../../components/WorkerHeader'
 import { usePendingUsers, useApproveUser, useRejectUser } from '../../api/users'
+import { getApiErrorMessage } from '../../lib/api'
 import { roleLabel } from '../../lib/roles'
-import type { Role } from '../../types/auth'
+import type { Me, Role } from '../../types/auth'
 
 const ROLES: Role[] = ['CLIENT', 'DISPATCHER', 'ADMIN']
 
@@ -13,99 +15,99 @@ export default function AccessRequests() {
   const reject = useRejectUser()
   // Per-row role selection (defaults to CLIENT).
   const [roleByUser, setRoleByUser] = useState<Record<string, Role>>({})
+  const users = pending.data ?? []
+  const error = approve.error ?? reject.error
+
+  const onReject = (u: Me) => {
+    if (!window.confirm(`¿Rechazar la solicitud de ${u.fullName} (${u.email})? No podrá entrar al catálogo.`)) return
+    reject.mutate(u.id)
+  }
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <header className="flex items-center gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
-        <Link to="/admin" className="text-slate-500 transition hover:text-slate-900">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <h1 className="text-lg font-semibold text-slate-900">Solicitudes de acceso</h1>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
-        {pending.isLoading && (
-          <div className="flex justify-center py-12 text-slate-400">
-            <Loader2 className="h-6 w-6 animate-spin" />
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      <WorkerHeader />
+      <main className="fade-up">
+        <div style={{ background: 'var(--bg-tint)', borderBottom: '1px solid var(--line)' }}>
+          <div className="container" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '12px 16px', flexWrap: 'wrap' }}>
+            <Link to="/admin" className="btn ghost">
+              <ArrowLeft size={16} /> Volver al panel
+            </Link>
+            <div style={{ flex: 1 }}>
+              <span className="label">Administración</span>
+              <h1 style={{ fontSize: 28, marginTop: 2 }}>Solicitudes de acceso</h1>
+            </div>
           </div>
-        )}
+        </div>
 
-        {pending.data && pending.data.length === 0 && (
-          <p className="rounded-xl bg-white p-8 text-center text-slate-500 shadow-sm">
-            No hay solicitudes pendientes.
-          </p>
-        )}
+        <div className="container" style={{ padding: '24px 24px 64px', maxWidth: 820 }}>
+          {error && (
+            <p style={{ color: 'var(--red)', fontSize: 14, marginBottom: 12 }}>{getApiErrorMessage(error)}</p>
+          )}
 
-        <ul className="space-y-3">
-          {pending.data?.map((u) => {
-            const selectedRole = roleByUser[u.id] ?? 'CLIENT'
-            const busy =
-              (approve.isPending && approve.variables?.id === u.id) ||
-              (reject.isPending && reject.variables === u.id)
-            return (
-              <li
-                key={u.id}
-                className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  {u.photoUrl ? (
-                    <img src={u.photoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
-                  ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500">
-                      <User className="h-6 w-6" />
+          {pending.isLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
+              <Loader2 className="animate-spin" size={24} style={{ color: 'var(--ink-faint)' }} />
+            </div>
+          ) : users.length === 0 ? (
+            <div className="card" style={{ padding: '40px 24px', textAlign: 'center' }}>
+              <h2 style={{ fontSize: 20, marginBottom: 6 }}>No hay solicitudes pendientes</h2>
+              <p className="muted" style={{ fontSize: 14 }}>Cuando alguien se registre, aparecerá aquí para que lo apruebes.</p>
+            </div>
+          ) : (
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              {users.map((u) => {
+                const selectedRole = roleByUser[u.id] ?? 'CLIENT'
+                const busy =
+                  (approve.isPending && approve.variables?.id === u.id) ||
+                  (reject.isPending && reject.variables === u.id)
+                return (
+                  <div key={u.id} className="access-row">
+                    <div className="access-row__person">
+                      <div className="access-row__avatar">
+                        {u.photoUrl ? <img src={u.photoUrl} alt="" /> : <User size={22} color="var(--ink-faint)" />}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600 }}>{u.fullName}</div>
+                        <div className="muted" style={{ fontSize: 13, overflowWrap: 'anywhere' }}>{u.email}</div>
+                        <div className="access-row__details">
+                          {u.phone && <span><Phone size={12} />{u.phone}</span>}
+                          {u.city && <span><MapPin size={12} />{u.city}</span>}
+                          {u.company && <span><Building2 size={12} />{u.company}</span>}
+                          {!u.phone && !u.city && !u.company && <span className="faint">Perfil sin completar</span>}
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="font-medium text-slate-900">{u.fullName}</p>
-                    <p className="text-sm break-all text-slate-500">{u.email}</p>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
-                      {u.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{u.phone}</span>}
-                      {u.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{u.city}</span>}
-                      {u.company && <span className="inline-flex items-center gap-1"><Building2 className="h-3 w-3" />{u.company}</span>}
-                      {!u.phone && !u.city && !u.company && <span className="italic text-slate-400">Perfil no completado</span>}
+
+                    <div className="access-row__actions">
+                      <select
+                        className="input"
+                        value={selectedRole}
+                        disabled={busy}
+                        onChange={(e) => setRoleByUser((prev) => ({ ...prev, [u.id]: e.target.value as Role }))}
+                        aria-label="Rol"
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r} value={r}>{roleLabel[r]}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => approve.mutate({ id: u.id, role: selectedRole })}
+                        className="btn primary sm"
+                      >
+                        <Check size={14} /> Aprobar
+                      </button>
+                      <button type="button" disabled={busy} onClick={() => onReject(u)} className="btn ghost sm">
+                        <X size={14} /> Rechazar
+                      </button>
                     </div>
                   </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:shrink-0">
-                  <select
-                    value={selectedRole}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setRoleByUser((prev) => ({ ...prev, [u.id]: e.target.value as Role }))
-                    }
-                    className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm text-slate-900 sm:w-auto"
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {roleLabel[r]}
-                      </option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => approve.mutate({ id: u.id, role: selectedRole })}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-600 sm:flex-none px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
-                  >
-                    <Check className="h-4 w-4" />
-                    Aprobar
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => reject.mutate(u.id)}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-300 sm:flex-none px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                  >
-                    <X className="h-4 w-4" />
-                    Rechazar
-                  </button>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   )

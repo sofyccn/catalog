@@ -1,7 +1,8 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Ban, Check, ChevronRight, CircleCheck, Clock, Loader2, X } from 'lucide-react'
 import { Header } from '../components/Header'
-import { StatusTag, shortDate } from '../components/WorkerHeader'
+import { StatusTag } from '../components/StatusTag'
+import { shortDate } from '../lib/format'
 import {
   useClientDecision,
   useRequestDetail,
@@ -56,10 +57,10 @@ function OrdersList({ onSelect }: { onSelect: (id: string) => void }) {
                   className="card"
                   style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, padding: '18px 20px', alignItems: 'center', cursor: 'pointer', textAlign: 'left', border: '1px solid var(--line)' }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>Pedido #{o.id.slice(-8)}</div>
                     <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
-                      {shortDate(o.createdAt)} · {o._count.items} {o._count.items === 1 ? 'producto' : 'productos'}
+                      {o._count.items} {o._count.items === 1 ? 'producto' : 'productos'}, {shortDate(o.createdAt)}
                     </div>
                   </div>
                   <StatusTag status={o.status} />
@@ -106,9 +107,7 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
     <main className="fade-up">
       <div
         style={{
-          background: reviewed
-            ? 'linear-gradient(135deg, var(--amber-tint), var(--amber-soft))'
-            : 'linear-gradient(135deg, var(--blue-tint), #c9d6f5)',
+          background: reviewed ? 'var(--amber-tint)' : 'var(--blue-tint)',
           borderBottom: '1px solid var(--line)',
         }}
       >
@@ -116,7 +115,7 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
           <button onClick={onBack} className="btn ghost sm" style={{ marginBottom: 12 }}>
             <ArrowLeft size={14} /> Mis pedidos
           </button>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <div className="order-banner">
             <div
               style={{
                 width: 48,
@@ -132,9 +131,9 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
             >
               <Clock size={22} />
             </div>
-            <div style={{ flex: 1 }}>
+            <div className="order-banner__text">
               <h3 style={{ fontSize: 18, fontWeight: 600 }}>
-                {reviewed ? 'Disponibilidad confirmada' : 'Pedido enviado · esperando respuesta'}
+                {reviewed ? 'Disponibilidad confirmada' : 'Pedido enviado'}
               </h3>
               <p className="muted" style={{ fontSize: 14 }}>
                 {reviewed
@@ -155,7 +154,7 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
             <span className="label">Pedido</span>
             <h2 style={{ fontSize: 26, marginTop: 4 }}>#{order.id.slice(-8)}</h2>
             <p className="muted" style={{ marginTop: 4, fontSize: 14 }}>
-              {order.items.length} {order.items.length === 1 ? 'producto' : 'productos'} ·{' '}
+              {order.items.length} {order.items.length === 1 ? 'producto' : 'productos'},{' '}
               {order.items.reduce((s, it) => s + it.quantity, 0)} unidades
             </p>
             {order.notes && (
@@ -210,26 +209,23 @@ function ItemRow({ item, reviewed, last }: { item: RequestItemDetail; reviewed: 
   const avail = item.available
   return (
     <div
+      className="order-item"
       style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 70px 150px',
-        gap: 12,
         padding: '14px 20px',
-        alignItems: 'center',
         borderBottom: last ? 'none' : '1px solid var(--line-soft)',
         background: reviewed && avail === false ? 'rgba(185, 28, 28, 0.03)' : 'transparent',
         opacity: reviewed && avail === false ? 0.75 : 1,
       }}
     >
-      <div>
+      <div className="order-item__info">
         <div style={{ fontFamily: 'var(--font-display)', fontSize: 16, fontWeight: 600 }}>{item.product.name}</div>
         <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
           <span className="tag muted" style={{ marginRight: 6 }}>{item.product.code}</span>
-          {item.observations && <span style={{ fontStyle: 'italic' }}>· {item.observations}</span>}
+          {item.observations && <div style={{ marginTop: 4 }}>{item.observations}</div>}
         </div>
       </div>
-      <span className="muted" style={{ textAlign: 'right' }}>× {item.quantity}</span>
-      <div style={{ textAlign: 'right' }}>
+      <span className="muted order-item__qty">× {item.quantity}</span>
+      <div className="order-item__status">
         {!reviewed ? (
           <span className="muted" style={{ fontSize: 13 }}>solicitado</span>
         ) : avail === true ? (
@@ -254,11 +250,11 @@ function TerminalView({ order, onBack }: { order: OrderRequest; onBack: () => vo
   const availableCount = order.items.filter((it) => it.available === true).length
   const units = order.items.reduce((s, it) => s + it.quantity, 0)
   return (
-    <main className="container" style={{ padding: '48px 24px', maxWidth: 680 }}>
+    <main className="container" style={{ padding: '32px 24px 48px', maxWidth: 680 }}>
       <button onClick={onBack} className="btn ghost sm" style={{ marginBottom: 16 }}>
         <ArrowLeft size={14} /> Mis pedidos
       </button>
-      <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+      <div className="card" style={{ padding: 'clamp(24px, 6vw, 40px)', textAlign: 'center' }}>
         <div style={{ width: 80, height: 80, margin: '0 auto 20px', borderRadius: '50%', background: v.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {v.icon}
         </div>
@@ -266,18 +262,18 @@ function TerminalView({ order, onBack }: { order: OrderRequest; onBack: () => vo
         <p className="muted" style={{ marginBottom: 12 }}>{v.sub}</p>
         <p className="faint" style={{ fontSize: 13 }}>
           Pedido #{order.id.slice(-8)}
-          {order.decidedAt ? ` · ${shortDate(order.decidedAt)}` : ''}
+          {order.decidedAt ? `, ${shortDate(order.decidedAt)}` : ''}
         </p>
       </div>
 
       {/* Listado de productos — queda como historial de la compra */}
       <div className="card" style={{ padding: 0, marginTop: 16 }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '4px 12px' }}>
           <span className="label">Detalle del pedido</span>
           <span className="muted" style={{ fontSize: 13 }}>
             {order.status === 'APPROVED'
               ? `${availableCount} de ${order.items.length} disponibles`
-              : `${order.items.length} producto${order.items.length === 1 ? '' : 's'} · ${units} unidades`}
+              : `${order.items.length} producto${order.items.length === 1 ? '' : 's'}, ${units} unidades`}
           </span>
         </div>
         {order.items.map((it, i) => (

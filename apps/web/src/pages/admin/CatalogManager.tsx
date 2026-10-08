@@ -50,7 +50,7 @@ export default function CatalogManager() {
     })
   }
 
-  const categories = categoriesQ.data ?? []
+  const categories = useMemo(() => categoriesQ.data ?? [], [categoriesQ.data])
   const categoriesById = useMemo(() => {
     const m = new Map<string, Category>()
     categories.forEach((c) => m.set(c.id, c))
@@ -64,7 +64,7 @@ export default function CatalogManager() {
       <WorkerHeader />
       <main className="fade-up">
         <div style={{ background: 'var(--bg-tint)', borderBottom: '1px solid var(--line)' }}>
-          <div className="container" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="container" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '12px 16px', flexWrap: 'wrap' }}>
             <Link to="/admin" className="btn ghost">
               <ArrowLeft size={16} /> Volver al panel
             </Link>
@@ -82,8 +82,9 @@ export default function CatalogManager() {
           <div className="card admin-products" style={{ padding: 0, alignSelf: 'flex-start' }}>
             <div className="admin-products__head" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <span className="label" style={{ flexShrink: 0 }}>
-                Productos ({productsQ.data?.total ?? 0}
-                {debouncedSearch && productsQ.data ? ` · mostrando ${products.length}` : ''})
+                {debouncedSearch && productsQ.data
+                  ? `${products.length} de ${productsQ.data.total} productos`
+                  : `${productsQ.data?.total ?? 0} productos`}
               </span>
               <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
                 <Search
@@ -149,8 +150,8 @@ export default function CatalogManager() {
                     </div>
                     <div className="admin-row__name">{p.name}</div>
                     <div className="admin-row__meta">
-                      {categoriesById.get(p.categoryId)?.name ?? '—'}
-                      {p.partType && ` · ${p.partType.name}`}
+                      {categoriesById.get(p.categoryId)?.name ?? 'Sin categoría'}
+                      {p.partType && `, ${p.partType.name}`}
                     </div>
                   </div>
                   <div className="admin-row__price">{formatPrice(p.price)}</div>
@@ -207,22 +208,24 @@ function ProductFormModal({ product, categories, onClose }: { product: Product |
   const [isCompleteUnit, setIsCompleteUnit] = useState(product?.isCompleteUnit ?? false)
   const [isNew, setIsNew] = useState(product?.isNew ?? false)
   const [active, setActive] = useState(product?.active ?? true)
-  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([])
-
   const models = useEquipmentModels(categoryId || undefined)
 
-  // Prefill selected models (match the product's compatible codes once models load).
-  const [modelsInit, setModelsInit] = useState(false)
-  useEffect(() => {
-    if (!modelsInit && product && models.data) {
-      const codes = new Set((product.compatibleModels ?? []).map((cm) => cm.model.code))
-      setSelectedModelIds(models.data.filter((m) => codes.has(m.code)).map((m) => m.id))
-      setModelsInit(true)
-    }
-  }, [modelsInit, product, models.data])
+  // The product's current compatible models, matched by code once the list loads.
+  const initialModelIds = useMemo(() => {
+    if (!product || !models.data) return []
+    const codes = new Set((product.compatibleModels ?? []).map((cm) => cm.model.code))
+    return models.data.filter((m) => codes.has(m.code)).map((m) => m.id)
+  }, [product, models.data])
+  // null = untouched. Saving an untouched product leaves its models alone, so a
+  // save before the list loads can't wipe them.
+  const [editedModelIds, setEditedModelIds] = useState<string[] | null>(null)
+  const selectedModelIds = editedModelIds ?? initialModelIds
 
   const toggleModel = (id: string) =>
-    setSelectedModelIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
+    setEditedModelIds((cur) => {
+      const base = cur ?? initialModelIds
+      return base.includes(id) ? base.filter((x) => x !== id) : [...base, id]
+    })
 
   const submit = () => {
     const input: ProductInput = {
@@ -236,35 +239,35 @@ function ProductFormModal({ product, categories, onClose }: { product: Product |
       isCompleteUnit,
       isNew,
       active,
-      modelIds: selectedModelIds,
+      modelIds: editedModelIds ?? (product ? undefined : []),
     }
     save.mutate({ id: product?.id, input }, { onSuccess: onClose })
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(20,30,25,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100, padding: 20, overflowY: 'auto' }}>
-      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: '100%', maxWidth: 520, padding: 24, margin: '24px 0' }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(20,30,25,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100, padding: 'clamp(10px, 3vw, 20px)', overflowY: 'auto' }}>
+      <div onClick={(e) => e.stopPropagation()} className="card" style={{ width: '100%', maxWidth: 520, padding: 'clamp(16px, 5vw, 24px)', margin: '24px 0' }}>
         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 16 }}>
           <h2 style={{ fontSize: 22 }}>{product ? 'Editar producto' : 'Nuevo producto'}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)' }}><X size={20} /></button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="form-2col">
             <Field label="Código"><input className="input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="E55" /></Field>
             <Field label="Precio (USD)"><input className="input" type="number" min={0} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" /></Field>
           </div>
           <Field label="Nombre"><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></Field>
           <Field label="Descripción"><textarea className="input" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} style={{ resize: 'vertical', fontFamily: 'inherit' }} /></Field>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="form-2col">
             <Field label="Categoría">
-              <select className="input" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSelectedModelIds([]) }}>
+              <select className="input" value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setEditedModelIds([]) }}>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </Field>
             <Field label="Tipo de parte">
               <select className="input" value={partTypeId} onChange={(e) => setPartTypeId(e.target.value)}>
-                <option value="">— Ninguno —</option>
+                <option value="">Ninguno</option>
                 {partTypes.data?.map((pt) => <option key={pt.id} value={pt.id}>{pt.name}</option>)}
               </select>
             </Field>
@@ -569,7 +572,7 @@ function ImagesEditor({ productId }: { productId: string }) {
                 {dragOver ? 'Suelta la imagen aquí' : 'Arrastra imágenes aquí'}
               </div>
               <div className="muted" style={{ fontSize: 12, marginTop: 3 }}>
-                o click para elegir · puedes subir varias a la vez
+                o haz clic para elegir. Puedes subir varias a la vez.
               </div>
             </div>
             <input type="file" accept="image/*" multiple onChange={onPick} style={{ display: 'none' }} />
@@ -581,7 +584,7 @@ function ImagesEditor({ productId }: { productId: string }) {
         <b>Tip:</b> también puedes pegar (<code style={{ fontSize: 11 }}>Ctrl+V</code>) imágenes copiadas desde
         <b> Canva</b>, <b>Word</b>, <b>Google Docs</b> o una captura de pantalla.
         También puedes <b>arrastrar</b> la imagen directamente desde otra pestaña (Canva, Google Imágenes…) o desde una carpeta.
-        Lo que no funciona es copiar-pegar un archivo desde el explorador — el navegador no lo permite.
+        Copiar y pegar un archivo desde el explorador de archivos no funciona porque el navegador no lo permite.
       </p>
       {pasteHint && <p style={{ color: 'var(--ink)', fontSize: 12, marginTop: 6 }}>{pasteHint}</p>}
       {uploadImages.isError && <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 6 }}>{getApiErrorMessage(uploadImages.error)}</p>}

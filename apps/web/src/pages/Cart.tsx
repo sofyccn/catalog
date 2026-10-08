@@ -5,7 +5,7 @@ import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
 import { cartCount, useCart } from '../stores/cart'
 import { useSendOrder } from '../api/requests'
-import { getApiErrorMessage } from '../lib/api'
+import { getApiErrorDetails, getApiErrorMessage } from '../lib/api'
 
 const qtyBtn: CSSProperties = {
   background: 'transparent',
@@ -25,19 +25,32 @@ export default function Cart() {
   const sendOrder = useSendOrder()
   const [note, setNote] = useState('')
   const [delivery, setDelivery] = useState<'retiro' | 'envio'>('retiro')
+  const [removedNotice, setRemovedNotice] = useState<string | null>(null)
 
   const units = cartCount(lines)
   const subtotal = lines.reduce((s, l) => s + (l.price ?? 0) * l.quantity, 0)
 
   const handleSend = () => {
     const deliveryLabel = delivery === 'retiro' ? 'Retiro en local' : 'Envío a finca'
-    const notes = [deliveryLabel, note.trim()].filter(Boolean).join(' — ')
+    const notes = [deliveryLabel, note.trim()].filter(Boolean).join('. ')
+    setRemovedNotice(null)
     sendOrder.mutate(
       { items: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })), notes },
       {
-        onSuccess: () => {
+        onSuccess: (order) => {
           clear()
-          navigate('/pedido')
+          navigate(`/pedido/${order.id}`)
+        },
+        onError: (err) => {
+          // Products archived/deleted after they were added: drop them so the
+          // client can resend, and say which ones were removed.
+          const ids = getApiErrorDetails<{ unavailableProductIds?: string[] }>(err)?.unavailableProductIds
+          if (!ids?.length) return
+          const names = lines.filter((l) => ids.includes(l.productId)).map((l) => l.name)
+          ids.forEach(remove)
+          setRemovedNotice(
+            `Quitamos de tu carrito ${names.length === 1 ? 'un producto que ya no está disponible' : 'productos que ya no están disponibles'}: ${names.join(', ')}. Revisa tu pedido y envíalo de nuevo.`,
+          )
         },
       },
     )
@@ -46,6 +59,13 @@ export default function Cart() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       <Header />
+      {removedNotice && (
+        <div className="container" style={{ paddingTop: 16 }}>
+          <div className="card" role="alert" style={{ padding: '12px 16px', background: 'var(--amber-tint)', borderColor: 'var(--amber-soft)', fontSize: 14 }}>
+            {removedNotice}
+          </div>
+        </div>
+      )}
       {lines.length === 0 ? (
         <main className="container" style={{ padding: '64px 24px', maxWidth: 560 }}>
           <div className="card" style={{ padding: '48px 24px', textAlign: 'center' }}>
@@ -79,7 +99,7 @@ export default function Cart() {
             <div className="container" style={{ padding: '28px 24px' }}>
               <div className="label">Tu pedido</div>
               <h1 style={{ fontSize: 40, marginTop: 4 }}>
-                Carrito · {lines.length} {lines.length === 1 ? 'producto' : 'productos'}
+                Carrito ({lines.length})
               </h1>
               <p className="muted" style={{ marginTop: 4 }}>
                 Cuando estés listo, lo enviamos al despachador. Revisa la disponibilidad y te
@@ -107,7 +127,7 @@ export default function Cart() {
                   onClick={() => navigate('/catalogo')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--green)', fontWeight: 600 }}
                 >
-                  ← Seguir buscando
+                  Seguir buscando
                 </button>
               </div>
               {lines.map((l) => (
@@ -204,7 +224,7 @@ export default function Cart() {
                 />
               </div>
 
-              {sendOrder.isError && (
+              {sendOrder.isError && !removedNotice && (
                 <p style={{ color: 'var(--red)', fontSize: 13 }}>{getApiErrorMessage(sendOrder.error)}</p>
               )}
               <button onClick={handleSend} disabled={sendOrder.isPending} className="btn primary lg" style={{ padding: 16, fontSize: 16 }}>

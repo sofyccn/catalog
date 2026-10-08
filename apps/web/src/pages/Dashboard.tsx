@@ -28,7 +28,7 @@ export default function Dashboard() {
           <div className="container">
             <span className="label" style={{ color: 'var(--amber-bright)' }}>Panel de administración</span>
             <h1 style={{ fontSize: 38, color: 'white', marginTop: 4 }}>
-              Hola, <em style={{ color: 'var(--amber-bright)', fontStyle: 'italic' }}>{firstName || 'administrador'}</em>
+              Hola, {firstName || 'administrador'}
             </h1>
             <p style={{ marginTop: 6, color: 'rgba(255,255,255,0.75)', fontSize: 15 }}>
               {pendingCount > 0

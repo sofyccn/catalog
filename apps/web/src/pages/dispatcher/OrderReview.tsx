@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, Loader2, MapPin, X } from 'lucide-react'
-import { WorkerHeader, StatusTag, shortDate } from '../../components/WorkerHeader'
+import { WorkerHeader } from '../../components/WorkerHeader'
+import { StatusTag } from '../../components/StatusTag'
+import { shortDate } from '../../lib/format'
 import { getApiErrorMessage } from '../../lib/api'
 import {
   useCompleteReview,
@@ -35,7 +37,7 @@ export default function DispatcherOrderReview() {
         <main className="container" style={{ padding: '64px 24px', textAlign: 'center' }}>
           <h2 style={{ fontSize: 28, marginBottom: 12 }}>Pedido no encontrado</h2>
           <button onClick={() => navigate('/despacho')} className="btn primary">
-            ← Volver a pedidos
+            Volver a pedidos
           </button>
         </main>
       </div>
@@ -51,7 +53,7 @@ export default function DispatcherOrderReview() {
       <WorkerHeader />
       <main className="fade-up">
         <div style={{ background: 'var(--bg-tint)', borderBottom: '1px solid var(--line)' }}>
-          <div className="container" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="container" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '12px 16px', flexWrap: 'wrap' }}>
             <button onClick={() => navigate('/despacho')} className="btn ghost sm">
               <ArrowLeft size={14} /> Pedidos
             </button>
@@ -66,9 +68,10 @@ export default function DispatcherOrderReview() {
         <div className="container grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: 32, padding: '32px 24px 64px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="card" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>{order.client?.fullName}</div>
-                <div className="muted" style={{ fontSize: 12 }}>{order.client?.email} · enviado {order.sentAt ? shortDate(order.sentAt) : shortDate(order.createdAt)}</div>
+                <div className="muted" style={{ fontSize: 13, overflowWrap: 'anywhere' }}>{order.client?.email}</div>
+                <div className="faint" style={{ fontSize: 12, marginTop: 2 }}>Enviado el {shortDate(order.sentAt ?? order.createdAt)}</div>
               </div>
             </div>
 
@@ -81,7 +84,8 @@ export default function DispatcherOrderReview() {
 
             <div className="card" style={{ padding: 0 }}>
               <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)' }}>
-                <span className="label">Productos {editable ? '· marca disponibilidad' : ''}</span>
+                <span className="label">Productos</span>
+                {editable && <p className="muted" style={{ fontSize: 13, marginTop: 2 }}>Marca la disponibilidad de cada producto.</p>}
               </div>
               {order.items.map((it, i) => (
                 <ItemReviewRow

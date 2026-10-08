@@ -1,34 +1,37 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Camera, Loader2, User } from 'lucide-react'
 import { useMe, useUpdateProfile, useUploadPhoto } from '../api/me'
 import { getApiErrorMessage } from '../lib/api'
+import type { Me } from '../types/auth'
 
 /** Reusable profile form — used on /perfil and embedded in the Pending screen.
  *  Name + last name live here; email is the only read-only field (Clerk identity). */
 export function ProfileForm() {
   const me = useMe()
-  const update = useUpdateProfile()
-  const photo = useUploadPhoto()
   const user = me.data
 
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [city, setCity] = useState('')
-  const [company, setCompany] = useState('')
+  if (me.isLoading || !user) {
+    return (
+      <div style={{ textAlign: 'center', padding: 32 }}>
+        <Loader2 className="animate-spin" size={24} style={{ color: 'var(--ink-faint)' }} />
+      </div>
+    )
+  }
+  // Fields start from the loaded profile; keyed so a different account re-initialises.
+  return <ProfileFields key={user.id} user={user} />
+}
+
+function ProfileFields({ user }: { user: Me }) {
+  const update = useUpdateProfile()
+  const photo = useUploadPhoto()
+
+  const [firstName, setFirstName] = useState(user.firstName ?? '')
+  const [lastName, setLastName] = useState(user.lastName ?? '')
+  const [phone, setPhone] = useState(user.phone ?? '')
+  const [city, setCity] = useState(user.city ?? '')
+  const [company, setCompany] = useState(user.company ?? '')
   const [saved, setSaved] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    if (user) {
-      setFirstName(user.firstName ?? '')
-      setLastName(user.lastName ?? '')
-      setPhone(user.phone ?? '')
-      setCity(user.city ?? '')
-      setCompany(user.company ?? '')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
 
   const submit = () => {
     update.mutate(
@@ -52,14 +55,6 @@ export function ProfileForm() {
     const f = e.target.files?.[0]
     if (f) photo.mutate(f)
     e.target.value = ''
-  }
-
-  if (me.isLoading || !user) {
-    return (
-      <div style={{ textAlign: 'center', padding: 32 }}>
-        <Loader2 className="animate-spin" size={24} style={{ color: 'var(--ink-faint)' }} />
-      </div>
-    )
   }
 
   return (
@@ -98,7 +93,7 @@ export function ProfileForm() {
       {/* Email — the only read-only field (Clerk identity) */}
       <div className="card" style={{ padding: 14, background: 'var(--bg-tint)' }}>
         <div className="label">Correo</div>
-        <div style={{ marginTop: 4, fontSize: 15 }}>{user.email}</div>
+        <div style={{ marginTop: 4, fontSize: 15, overflowWrap: 'anywhere' }}>{user.email}</div>
         <p className="faint" style={{ fontSize: 11, marginTop: 6 }}>
           Para cambiar correo o contraseña, abre el menú de tu cuenta (foto arriba a la derecha).
         </p>
@@ -117,7 +112,7 @@ export function ProfileForm() {
         <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="09 9999 9999" />
       </Field>
       <Field label="Ciudad">
-        <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Tisaleo / Guayllabamba / …" />
+        <input className="input" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ej. Ambato" />
       </Field>
       <Field label="Empresa o finca (opcional)">
         <input className="input" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Ej. Finca San Pedro" />
@@ -128,7 +123,7 @@ export function ProfileForm() {
 
       <button onClick={submit} disabled={update.isPending} className="btn primary lg" style={{ padding: 14 }}>
         {update.isPending ? <Loader2 className="animate-spin" size={18} /> : null}
-        {saved ? 'Guardado ✓' : 'Guardar perfil'}
+        {saved ? 'Perfil guardado' : 'Guardar perfil'}
       </button>
     </div>
   )

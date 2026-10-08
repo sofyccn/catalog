@@ -28,6 +28,12 @@ api.interceptors.request.use(async (config) => {
 })
 
 /** Pull a human-friendly Spanish message out of an API error. */
+/** The `details` payload of an API error response, if any. */
+export function getApiErrorDetails<T>(error: unknown): T | undefined {
+  if (axios.isAxiosError(error)) return error.response?.data?.error?.details as T | undefined
+  return undefined
+}
+
 export function getApiErrorMessage(error: unknown, fallback = 'Ocurrió un error inesperado'): string {
   if (axios.isAxiosError(error)) {
     return error.response?.data?.error?.message ?? error.message ?? fallback

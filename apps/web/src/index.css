@@ -59,6 +59,8 @@ body {
   font-size: 15px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+  /* Long unbroken strings (emails, product codes) wrap instead of overflowing. */
+  overflow-wrap: break-word;
 }
 
 h1, h2, h3, h4 {
@@ -151,11 +153,9 @@ h1, h2, h3, h4 {
 .muted { color: var(--ink-soft); }
 .faint { color: var(--ink-faint); }
 .label {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
 }
 
 @keyframes fadeUp {
@@ -189,8 +189,10 @@ h1, h2, h3, h4 {
     position: static !important;
     top: auto !important;
   }
+  /* Side gutters only — pages set their own top/bottom spacing inline. */
   .container {
-    padding: 0 18px !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
   }
 }
 
@@ -199,9 +201,10 @@ h1, h2, h3, h4 {
     grid-template-columns: repeat(2, 1fr) !important;
   }
   .container {
-    padding: 0 14px !important;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
   }
-  h1 {
+  h1:not([class*="cl-"]) {
     font-size: clamp(24px, 7vw, 34px) !important;
   }
   /* Cart line: thumb | name | trash on top, quantity stepper under the name. */
@@ -283,6 +286,60 @@ h1, h2, h3, h4 {
   .order-row__action { justify-self: end; }
 }
 
+/* === Client order detail: item rows ======================================= */
+.order-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px 150px;
+  grid-template-areas: "info qty status";
+  gap: 12px;
+  align-items: center;
+}
+.order-item__info { grid-area: info; min-width: 0; }
+.order-item__qty { grid-area: qty; text-align: right; }
+.order-item__status { grid-area: status; text-align: right; }
+
+@media (max-width: 700px) {
+  /* Name on its own line; quantity and availability underneath. */
+  .order-item {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "info info"
+      "qty status";
+    row-gap: 8px;
+    padding: 14px 16px !important;
+  }
+  .order-item__qty { text-align: left; }
+}
+
+/* Banner at the top of an order: icon + text + status pill. */
+.order-banner { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.order-banner__text { flex: 1 1 220px; min-width: 0; }
+
+/* Two-up form fields (admin product modal) — stack on narrow phones. */
+.form-2col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.form-2col select { width: 100%; min-width: 0; }
+@media (max-width: 480px) {
+  .form-2col { grid-template-columns: 1fr; }
+}
+
+/* === Admin: access requests =============================================== */
+.access-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid var(--line-soft); }
+.access-row:last-child { border-bottom: none; }
+.access-row__person { display: flex; gap: 12px; align-items: flex-start; min-width: 0; }
+.access-row__avatar { width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: var(--bg-tint); display: flex; align-items: center; justify-content: center; }
+.access-row__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.access-row__details { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; font-size: 12.5px; color: var(--ink-soft); }
+.access-row__details span { display: inline-flex; align-items: center; gap: 4px; }
+.access-row__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.access-row__actions select { width: auto; padding-top: 7px; padding-bottom: 7px; font-size: 13px; }
+
+@media (max-width: 700px) {
+  .access-row { flex-direction: column; align-items: stretch; padding: 14px; }
+  .access-row__actions { flex-wrap: wrap; }
+  .access-row__actions select { width: 100%; }
+  .access-row__actions .btn { flex: 1; }
+}
+
 /* === Profile form ========================================================= */
 @media (max-width: 700px) {
   .profile-name-row { grid-template-columns: 1fr !important; }
@@ -334,35 +391,28 @@ h1, h2, h3, h4 {
 .kl-split { display: grid; grid-template-columns: 1.05fr 0.95fr; min-height: 100vh; }
 
 /* Hero (left column) --------------------------------------------------- */
-.kl-hero { position: relative; overflow: hidden; color: #fff; padding: 48px 56px; background: linear-gradient(180deg, #1a4730 0%, var(--green-deep) 55%, #0f2a1c 100%); display: flex; flex-direction: column; }
-.kl-hero__scene { position: absolute; inset: 0; pointer-events: none; }
-.kl-hero__sun { position: absolute; top: -10%; right: -6%; width: 60%; height: 60%; background: radial-gradient(circle, rgba(245,158,11,0.42), rgba(245,158,11,0.08) 45%, transparent 65%); }
-.kl-hero__rows { position: absolute; inset: -20%; bottom: -40%; transform: perspective(600px) rotateX(62deg); transform-origin: bottom; background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 2px, transparent 2px 46px), repeating-linear-gradient(90deg, rgba(245,158,11,0.1) 0 1px, transparent 1px 138px); }
-.kl-hero__horizon { position: absolute; left: 0; right: 0; top: 40%; height: 22%; background: linear-gradient(180deg, rgba(245,158,11,0.14), transparent); }
+.kl-hero { position: relative; overflow: hidden; color: #fff; padding: 48px 56px; background: var(--green-deep); display: flex; flex-direction: column; }
 .kl-hero__inner { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; max-width: 560px; }
 .kl-hero__content { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 36px 0; }
 .kl-display { font-family: var(--font-display); font-weight: 600; font-size: 48px; line-height: 1.08; letter-spacing: -0.02em; color: #fff; margin: 0; text-wrap: balance; }
-.kl-display em { font-style: italic; font-weight: 600; color: var(--amber-bright); }
 .kl-hero__sub { font-size: 17px; line-height: 1.55; color: rgba(255,255,255,0.8); margin: 0; max-width: 480px; }
 .kl-hero__brands { padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.12); }
 
 /* Kicker --------------------------------------------------------------- */
-.kl-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--green); }
+.kl-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--green); }
 .kl-kicker--dark { color: var(--amber-bright); }
-.kl-kicker__rule { width: 20px; height: 2px; background: currentColor; border-radius: 2px; }
 
 /* Brands strip --------------------------------------------------------- */
 .kl-brands { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
-.kl-brands__label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-faint); }
+.kl-brands__label { font-size: 13px; font-weight: 500; color: var(--ink-faint); }
 .kl-brands--dark .kl-brands__label { color: rgba(255,255,255,0.45); }
-.kl-brands__name { font-family: var(--font-display); font-weight: 700; font-style: italic; font-size: 17px; color: var(--ink-soft); letter-spacing: 0.01em; }
+.kl-brands__name { font-family: var(--font-display); font-weight: 700; font-size: 17px; color: var(--ink-soft); letter-spacing: 0.01em; }
 .kl-brands--dark .kl-brands__name { color: rgba(255,255,255,0.7); }
 
 /* How it works --------------------------------------------------------- */
 .kl-how { padding: 76px 64px; max-width: 1180px; margin: 0 auto; }
 .kl-section-head { text-align: center; margin-bottom: 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .kl-h2 { font-family: var(--font-display); font-weight: 600; font-size: 38px; line-height: 1.1; letter-spacing: -0.02em; margin: 0; color: var(--ink); }
-.kl-h2 em { font-style: italic; font-weight: 600; color: var(--amber-bright); }
 .kl-section-sub { max-width: 560px; margin: 0; font-size: 16px; color: var(--ink-soft); line-height: 1.55; }
 .kl-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; width: 100%; }
 .kl-step { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
@@ -377,6 +427,11 @@ h1, h2, h3, h4 {
 .kl-auth__inner { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 16px; }
 .kl-auth__clerk { display: flex; justify-content: center; }
 .kl-auth__clerk > div { width: 100%; }
+/* Clerk's card is a fixed ~25rem wide; let it shrink to the column on phones
+   instead of pushing the whole page sideways. */
+.kl-split > * { min-width: 0; }
+.kl-auth__clerk .cl-rootBox,
+.kl-auth__clerk .cl-cardBox { width: 100%; max-width: 100%; }
 .kl-approval { display: flex; gap: 12px; align-items: flex-start; background: var(--amber-tint); border: 1px solid var(--amber-soft); border-radius: 14px; padding: 16px 18px; }
 .kl-approval svg { flex-shrink: 0; margin-top: 1px; }
 .kl-approval p { margin: 0; font-size: 14px; line-height: 1.5; color: #7a4a08; }
@@ -388,7 +443,7 @@ h1, h2, h3, h4 {
 .kl-footer__brand { display: flex; flex-direction: column; gap: 16px; }
 .kl-footer__blurb { margin: 0; max-width: 380px; font-size: 14px; line-height: 1.55; color: rgba(255,255,255,0.62); }
 .kl-footer__locs { display: flex; flex-direction: column; gap: 18px; }
-.kl-footer__label { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.45); }
+.kl-footer__label { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.45); }
 .kl-footer__locgrid { display: grid; grid-template-columns: auto auto; gap: 56px; justify-content: start; }
 .kl-loc { display: flex; gap: 12px; align-items: flex-start; }
 .kl-loc__town { font-family: var(--font-display); font-weight: 600; font-size: 19px; color: #fff; }
@@ -413,7 +468,7 @@ h1, h2, h3, h4 {
   .kl-hero__inner { max-width: 100%; }
   .kl-hero__content { padding: 24px 0; gap: 18px; }
   .kl-how { padding: 44px 24px; }
-  .kl-auth { padding: 36px 24px; }
+  .kl-auth { padding: 28px 16px; }
   .kl-footer { padding: 34px 24px; }
 }
 

@@ -20,10 +20,10 @@ export function ProductThumb({ src, alt, fit = 'cover' }: { src?: string; alt: s
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, var(--green-tint), var(--amber-tint))',
+        background: 'var(--bg-tint)',
       }}
     >
-      <Package size="34%" color="var(--green)" strokeWidth={1.4} style={{ opacity: 0.5 }} />
+      <Package size="30%" color="var(--ink-faint)" strokeWidth={1.4} style={{ opacity: 0.6 }} />
     </div>
   )
 }

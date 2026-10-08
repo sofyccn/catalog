@@ -90,9 +90,8 @@ export function Lockup({
   )
 }
 
-/** Deep-green footer with brand blurb + locations. Used on landing and inside the app. */
-export function Footer() {
-  const Loc = ({ town, prov, detail }: { town: string; prov: string; detail: string }) => (
+function Loc({ town, prov, detail }: { town: string; prov: string; detail: string }) {
+  return (
     <div className="kl-loc">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--amber-bright)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -105,6 +104,10 @@ export function Footer() {
       </div>
     </div>
   )
+}
+
+/** Deep-green footer with brand blurb + locations. Used on landing and inside the app. */
+export function Footer() {
   return (
     <footer className="kl-footer">
       <div className="kl-footer__grid">
@@ -118,13 +121,13 @@ export function Footer() {
         <div className="kl-footer__locs">
           <span className="kl-footer__label">Dónde estamos</span>
           <div className="kl-footer__locgrid">
-            <Loc town="Tisaleo" prov="Tungurahua" detail="Lun – Sáb · 8h00 – 18h00" />
-            <Loc town="Guayllabamba" prov="Pichincha" detail="Lun – Sáb · 8h00 – 18h00" />
+            <Loc town="Tisaleo" prov="Tungurahua" detail="Lunes a sábado, 8:00 a 18:00" />
+            <Loc town="Guayllabamba" prov="Pichincha" detail="Lunes a sábado, 8:00 a 18:00" />
           </div>
         </div>
       </div>
       <div className="kl-footer__bottom">
-        <span>© {new Date().getFullYear()} Importadora Cobo · Catálogo Kyodo</span>
+        <span>© {new Date().getFullYear()} Importadora Cobo</span>
         <span>¿Cliente nuevo? Un admin aprueba tu acceso antes de empezar.</span>
       </div>
     </footer>

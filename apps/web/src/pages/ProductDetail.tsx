@@ -7,8 +7,14 @@ import { ProductThumb } from '../components/ProductThumb'
 import { formatPrice, useProduct, useRelatedProducts } from '../api/catalog'
 import { useCart } from '../stores/cart'
 
-export default function ProductDetail() {
+/** Keyed by id so photo selection and quantity reset when jumping to a
+ *  related product (same route, so React would otherwise keep the state). */
+export default function ProductDetailRoute() {
   const { id } = useParams<{ id: string }>()
+  return <ProductDetail key={id} id={id} />
+}
+
+function ProductDetail({ id }: { id?: string }) {
   const navigate = useNavigate()
   const { data: product, isLoading } = useProduct(id)
   const related = useRelatedProducts(id)
@@ -144,8 +150,8 @@ export default function ProductDetail() {
               <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
                 <span className="tag muted">{product.code}</span>
                 {product.category && <span className="muted" style={{ fontSize: 13 }}>{product.category.name}</span>}
-                {product.partType && <span className="muted" style={{ fontSize: 13 }}>· {product.partType.name}</span>}
-                {product.brand && <span className="muted" style={{ fontSize: 13 }}>· {product.brand.name}</span>}
+                {product.partType && <span className="muted" style={{ fontSize: 13 }}>{product.partType.name}</span>}
+                {product.brand && <span className="muted" style={{ fontSize: 13 }}>{product.brand.name}</span>}
               </div>
               <h1 style={{ fontSize: 38, marginTop: 0 }}>{product.name}</h1>
 
@@ -173,15 +179,15 @@ export default function ProductDetail() {
               )}
 
               <div className="card" style={{ padding: 16, background: 'var(--bg-tint)', borderColor: 'var(--line-soft)' }}>
-                <div className="row" style={{ gap: 14 }}>
+                <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
                   <div className="row" style={{ background: 'white', border: '1px solid var(--line)', borderRadius: 999, overflow: 'hidden' }}>
                     <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ background: 'transparent', border: 'none', padding: '10px 14px', cursor: 'pointer', color: 'var(--ink-soft)', display: 'inline-flex' }} aria-label="Menos"><Minus size={16} /></button>
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600, padding: '0 14px', minWidth: 30, textAlign: 'center' }}>{qty}</span>
                     <button onClick={() => setQty((q) => q + 1)} style={{ background: 'transparent', border: 'none', padding: '10px 14px', cursor: 'pointer', color: 'var(--ink-soft)', display: 'inline-flex' }} aria-label="Más"><Plus size={16} /></button>
                   </div>
-                  <button onClick={handleAdd} className="btn primary lg" style={{ flex: 1 }}>
+                  <button onClick={handleAdd} className="btn primary lg" style={{ flex: '1 1 200px' }}>
                     <ShoppingCart size={18} />
-                    {added ? 'Añadido ✓' : `Añadir al pedido${qty > 1 ? ` · ${qty}` : ''}`}
+                    {added ? 'Añadido al pedido' : qty > 1 ? `Añadir ${qty} al pedido` : 'Añadir al pedido'}
                   </button>
                 </div>
               </div>
