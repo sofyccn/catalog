@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Loader2, Minus, Plus, ShoppingCart, X, ZoomIn } from 'lucide-react'
 import { Header } from '../components/Header'
@@ -83,7 +83,7 @@ export default function ProductDetail() {
                   width: '100%',
                 }}
               >
-                <ProductThumb src={mainImage?.urlFull ?? mainImage?.urlMedium} alt={product.name} />
+                <ProductThumb src={mainImage?.urlFull ?? mainImage?.urlMedium} alt={product.name} fit="contain" />
                 {product.isNew && (
                   <span className="tag" style={{ position: 'absolute', top: 14, left: 14, background: 'var(--amber-bright)', color: 'var(--ink)' }}>NUEVO</span>
                 )}
@@ -275,20 +275,8 @@ function Lightbox({
         cursor: 'zoom-out',
       }}
     >
-      <img
-        src={current.src}
-        alt={current.alt}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: '92vw',
-          maxHeight: '88vh',
-          objectFit: 'contain',
-          borderRadius: 8,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          cursor: 'default',
-          userSelect: 'none',
-        }}
-      />
+      {/* Keyed by index so zoom/pan resets when switching photos. */}
+      <ZoomableImage key={idx} src={current.src} alt={current.alt} />
 
       <button
         type="button"
@@ -379,6 +367,140 @@ function Lightbox({
             {idx + 1} / {images.length}
           </div>
         </>
+      )}
+    </div>
+  )
+}
+
+const MAX_ZOOM = 5
+const CLICK_ZOOM = 2.5
+
+/** Image filling the lightbox box, with real zoom: click to zoom into the
+ *  clicked point (click again to reset), mouse wheel to zoom in/out, and drag
+ *  to pan while zoomed. */
+function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+  const boxRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [dragging, setDragging] = useState(false)
+  const drag = useRef<{ x: number; y: number; ox: number; oy: number; moved: boolean } | null>(null)
+
+  /** Keep the zoomed image covering the box so it can't be dragged off-screen. */
+  const clamp = (x: number, y: number, s: number) => {
+    const rect = boxRef.current?.getBoundingClientRect()
+    if (!rect) return { x, y }
+    const maxX = ((s - 1) * rect.width) / 2
+    const maxY = ((s - 1) * rect.height) / 2
+    return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) }
+  }
+
+  /** Pointer position relative to the box centre (the transform origin). */
+  const pointFromCenter = (clientX: number, clientY: number) => {
+    const rect = boxRef.current!.getBoundingClientRect()
+    return { x: clientX - rect.left - rect.width / 2, y: clientY - rect.top - rect.height / 2 }
+  }
+
+  /** Zoom to `next` while keeping the point under the cursor fixed. */
+  const zoomAt = (next: number, clientX: number, clientY: number) => {
+    const s = Math.max(1, Math.min(MAX_ZOOM, next))
+    if (s === 1) {
+      setScale(1)
+      setOffset({ x: 0, y: 0 })
+      return
+    }
+    const p = pointFromCenter(clientX, clientY)
+    const ratio = s / scale
+    setScale(s)
+    setOffset(clamp(p.x - (p.x - offset.x) * ratio, p.y - (p.y - offset.y) * ratio, s))
+  }
+
+  const onClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (drag.current?.moved) return
+    if (scale > 1) zoomAt(1, e.clientX, e.clientY)
+    else zoomAt(CLICK_ZOOM, e.clientX, e.clientY)
+  }
+
+  const onWheel = (e: React.WheelEvent) => {
+    zoomAt(scale * (e.deltaY < 0 ? 1.2 : 1 / 1.2), e.clientX, e.clientY)
+  }
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    drag.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y, moved: false }
+    if (scale > 1) {
+      e.currentTarget.setPointerCapture(e.pointerId)
+      setDragging(true)
+    }
+  }
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = drag.current
+    if (!d || scale <= 1) return
+    const dx = e.clientX - d.x
+    const dy = e.clientY - d.y
+    if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true
+    setOffset(clamp(d.ox + dx, d.oy + dy, scale))
+  }
+
+  const onPointerUp = () => {
+    setDragging(false)
+    // Clear after the click event that follows pointerup has seen `moved`.
+    setTimeout(() => { drag.current = null }, 0)
+  }
+
+  return (
+    <div
+      ref={boxRef}
+      onClick={(e) => e.stopPropagation()}
+      onWheel={onWheel}
+      style={{
+        width: '92vw',
+        height: '88vh',
+        overflow: 'hidden',
+        borderRadius: 8,
+        position: 'relative',
+        touchAction: scale > 1 ? 'none' : 'manipulation',
+      }}
+    >
+      <img
+        src={src}
+        alt={alt}
+        draggable={false}
+        onClick={onClick}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          display: 'block',
+          transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
+          transformOrigin: 'center',
+          transition: dragging ? 'none' : 'transform 180ms ease',
+          cursor: scale > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in',
+          userSelect: 'none',
+        }}
+      />
+      {scale === 1 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.5)',
+            color: '#fff',
+            padding: '6px 14px',
+            borderRadius: 999,
+            fontSize: 12,
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Haz clic o usa la rueda del mouse para acercar
+        </div>
       )}
     </div>
   )
