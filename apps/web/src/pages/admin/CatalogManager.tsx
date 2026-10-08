@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, Pencil, Plus, Search, UploadCloud, X } from 'lucide-react'
+import { ArrowLeft, Loader2, Pencil, Plus, Search, Trash2, UploadCloud, X } from 'lucide-react'
 import { WorkerHeader } from '../../components/WorkerHeader'
 import { ProductThumb } from '../../components/ProductThumb'
 import {
@@ -16,6 +16,7 @@ import {
 import {
   useAdminProducts,
   useDeleteImage,
+  useDeleteProduct,
   useSaveProduct,
   useToggleProduct,
   useUploadImages,
@@ -39,7 +40,15 @@ export default function CatalogManager() {
   const debouncedSearch = useDebounced(search.trim(), 300)
   const productsQ = useAdminProducts(debouncedSearch.length >= 2 ? debouncedSearch : undefined)
   const toggleProduct = useToggleProduct()
+  const deleteProduct = useDeleteProduct()
   const [editing, setEditing] = useState<Product | 'new' | null>(null)
+
+  const onDelete = (p: Product) => {
+    if (!window.confirm(`¿Eliminar "${p.name}" (${p.code}) para siempre? Esto no se puede deshacer.\n\nSi solo quieres dejar de venderlo, usa "Desactivar".`)) return
+    deleteProduct.mutate(p.id, {
+      onError: (err) => window.alert(getApiErrorMessage(err)),
+    })
+  }
 
   const categories = categoriesQ.data ?? []
   const categoriesById = useMemo(() => {
@@ -149,6 +158,7 @@ export default function CatalogManager() {
                     <button
                       type="button"
                       onClick={() => toggleProduct.mutate({ id: p.id, active: !p.active })}
+                      title={p.active ? 'Desactivar: ocultar del catálogo de clientes' : 'Activar: mostrar en el catálogo'}
                       className="tag"
                       style={{ cursor: 'pointer', border: 'none', background: p.active ? 'var(--ok-tint)' : 'var(--bg-tint)', color: p.active ? 'var(--ok)' : 'var(--ink-faint)' }}
                     >
@@ -156,6 +166,16 @@ export default function CatalogManager() {
                     </button>
                     <button className="btn ghost sm" onClick={() => setEditing(p)} aria-label="Editar">
                       <Pencil size={14} />
+                    </button>
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => onDelete(p)}
+                      disabled={deleteProduct.isPending && deleteProduct.variables === p.id}
+                      aria-label="Eliminar"
+                      title="Eliminar producto"
+                      style={{ color: 'var(--red)' }}
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>

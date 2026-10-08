@@ -57,6 +57,18 @@ export function useToggleProduct() {
   })
 }
 
+/** Hard delete — the API refuses (409) for products that appear in any order. */
+export function useDeleteProduct() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => (await api.delete(`/products/${id}`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-products'] })
+      qc.invalidateQueries({ queryKey: ['products'] })
+    },
+  })
+}
+
 export function useCreateCategory() {
   const qc = useQueryClient()
   return useMutation({

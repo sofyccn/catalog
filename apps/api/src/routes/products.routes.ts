@@ -19,6 +19,7 @@ productsRouter.get('/:id', asyncHandler(productsController.getOne))
 // Mutations are admin-only.
 productsRouter.post('/', requireRole('ADMIN'), asyncHandler(productsController.create))
 productsRouter.patch('/:id', requireRole('ADMIN'), asyncHandler(productsController.update))
+productsRouter.delete('/:id', requireRole('ADMIN'), asyncHandler(productsController.remove))
 
 // Images (admin): multipart upload (sharp -> R2) + delete.
 productsRouter.post('/:id/images', requireRole('ADMIN'), upload.array('images', 5), asyncHandler(imagesController.uploadImages))

@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Prisma } from '../generated/prisma/client.js'
 import { prisma } from '../lib/prisma.js'
 import { conflict, notFound } from '../lib/errors.js'
+import { deleteObject, keyFromUrl } from '../lib/r2.js'
 
 function toArray(v: string | string[] | undefined): string[] {
   if (v === undefined) return []
@@ -178,7 +179,8 @@ export async function getOne(req: Request, res: Response) {
       category: { select: { id: true, name: true, slug: true } },
     },
   })
-  if (!product) throw notFound('Producto no encontrado')
+  // Archived products stay reachable for admins only (direct links, old carts).
+  if (!product || (!product.active && req.localUser?.role !== 'ADMIN')) throw notFound('Producto no encontrado')
   res.json({ product: serialize(product) })
 }
 
@@ -238,6 +240,7 @@ export async function create(req: Request, res: Response) {
       brandId: input.brandId ?? null,
       isCompleteUnit: input.isCompleteUnit ?? false,
       isNew: input.isNew ?? false,
+      active: input.active ?? true,
       ...(input.modelIds?.length
         ? { compatibleModels: { create: input.modelIds.map((modelId) => ({ modelId })) } }
         : {}),
@@ -277,4 +280,33 @@ export async function update(req: Request, res: Response) {
   })
   const full = await prisma.product.findUnique({ where: { id }, include: PRODUCT_INCLUDE })
   res.json({ product: serialize(full!) })
+}
+
+// --- Admin delete ---
+/**
+ * Hard-delete a product that was never ordered (e.g. test products). Products
+ * that appear in any request are kept for order history — archive those
+ * (active = false) instead.
+ */
+export async function remove(req: Request, res: Response) {
+  const id = req.params.id
+  if (typeof id !== 'string') throw notFound('Producto no encontrado')
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: { images: true, _count: { select: { requestItems: true } } },
+  })
+  if (!product) throw notFound('Producto no encontrado')
+  if (product._count.requestItems > 0) {
+    throw conflict('Este producto aparece en pedidos, así que no se puede eliminar. Desactívalo para ocultarlo del catálogo.')
+  }
+
+  // Images and compatible-model links cascade in the DB; R2 cleanup is best-effort.
+  await prisma.product.delete({ where: { id } })
+  for (const img of product.images) {
+    for (const url of [img.urlThumb, img.urlMedium, img.urlFull]) {
+      const key = keyFromUrl(url)
+      if (key) await deleteObject(key).catch(() => {})
+    }
+  }
+  res.status(204).end()
 }
