@@ -16,14 +16,14 @@ export default function AccessRequests() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <header className="flex items-center gap-4 border-b border-slate-200 bg-white px-6 py-4">
+      <header className="flex items-center gap-4 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
         <Link to="/admin" className="text-slate-500 transition hover:text-slate-900">
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <h1 className="text-lg font-semibold text-slate-900">Solicitudes de acceso</h1>
       </header>
 
-      <main className="mx-auto max-w-3xl px-6 py-8">
+      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8">
         {pending.isLoading && (
           <div className="flex justify-center py-12 text-slate-400">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -47,17 +47,17 @@ export default function AccessRequests() {
                 key={u.id}
                 className="flex flex-col gap-3 rounded-xl bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex min-w-0 items-start gap-3">
                   {u.photoUrl ? (
-                    <img src={u.photoUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
+                    <img src={u.photoUrl} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-200 text-slate-500">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500">
                       <User className="h-6 w-6" />
                     </div>
                   )}
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-medium text-slate-900">{u.fullName}</p>
-                    <p className="text-sm text-slate-500">{u.email}</p>
+                    <p className="text-sm break-all text-slate-500">{u.email}</p>
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
                       {u.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3" />{u.phone}</span>}
                       {u.city && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{u.city}</span>}
@@ -67,14 +67,14 @@ export default function AccessRequests() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:shrink-0">
                   <select
                     value={selectedRole}
                     disabled={busy}
                     onChange={(e) =>
                       setRoleByUser((prev) => ({ ...prev, [u.id]: e.target.value as Role }))
                     }
-                    className="rounded-lg border border-slate-300 px-2 py-2 text-sm text-slate-900"
+                    className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm text-slate-900 sm:w-auto"
                   >
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
@@ -87,7 +87,7 @@ export default function AccessRequests() {
                     type="button"
                     disabled={busy}
                     onClick={() => approve.mutate({ id: u.id, role: selectedRole })}
-                    className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-600 sm:flex-none px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
                   >
                     <Check className="h-4 w-4" />
                     Aprobar
@@ -96,7 +96,7 @@ export default function AccessRequests() {
                     type="button"
                     disabled={busy}
                     onClick={() => reject.mutate(u.id)}
-                    className="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-300 sm:flex-none px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
                   >
                     <X className="h-4 w-4" />
                     Rechazar
