@@ -173,6 +173,13 @@ h1, h2, h3, h4 {
 .responsive-table-card { overflow-x: auto; }
 .responsive-table-card > * { min-width: 720px; }
 
+/* Grid items default to min-width:auto, so one long word/row can stretch a
+   column past the viewport and push the whole page sideways on phones. */
+.grid-2col > *,
+.grid-sidebar > * {
+  min-width: 0;
+}
+
 @media (max-width: 900px) {
   .grid-2col,
   .grid-sidebar {
@@ -197,6 +204,21 @@ h1, h2, h3, h4 {
   h1 {
     font-size: clamp(24px, 7vw, 34px) !important;
   }
+  /* Cart line: thumb | name | trash on top, quantity stepper under the name. */
+  .cart-line {
+    grid-template-columns: 64px minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      'thumb info remove'
+      'thumb qty  qty' !important;
+    gap: 10px 12px !important;
+    padding: 14px !important;
+    align-items: start !important;
+  }
+  .cart-line__thumb { grid-area: thumb; width: 64px !important; height: 64px !important; }
+  .cart-line__info { grid-area: info; }
+  .cart-line__info h4 { font-size: 15px !important; }
+  .cart-line__qty { grid-area: qty; width: 130px; }
+  .cart-line__remove { grid-area: remove; }
 }
 
 /* === App header (sticky, used in Header + WorkerHeader) =================== */

@@ -113,6 +113,7 @@ export default function Cart() {
               {lines.map((l) => (
                 <div
                   key={l.productId}
+                  className="cart-line"
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '90px 1fr 130px 30px',
@@ -122,10 +123,10 @@ export default function Cart() {
                     alignItems: 'center',
                   }}
                 >
-                  <div style={{ width: 90, height: 80, borderRadius: 10, overflow: 'hidden', background: 'var(--bg-tint)' }}>
+                  <div className="cart-line__thumb" style={{ width: 90, height: 80, borderRadius: 10, overflow: 'hidden', background: 'var(--bg-tint)' }}>
                     <ProductThumb src={l.image} alt={l.name} />
                   </div>
-                  <div>
+                  <div className="cart-line__info" style={{ minWidth: 0 }}>
                     <h4 style={{ fontSize: 16, fontWeight: 600, fontFamily: 'var(--font-display)', marginBottom: 4 }}>
                       {l.name}
                     </h4>
@@ -134,7 +135,7 @@ export default function Cart() {
                       <span className="muted" style={{ fontSize: 12, marginLeft: 8 }}>${l.price.toFixed(2)} c/u</span>
                     )}
                   </div>
-                  <div className="row" style={{ background: 'var(--bg-tint)', borderRadius: 999, overflow: 'hidden' }}>
+                  <div className="row cart-line__qty" style={{ background: 'var(--bg-tint)', borderRadius: 999, overflow: 'hidden' }}>
                     <button onClick={() => setQty(l.productId, l.quantity - 1)} style={qtyBtn} aria-label="Menos">
                       <Minus size={14} />
                     </button>
@@ -147,6 +148,7 @@ export default function Cart() {
                   </div>
                   <button
                     onClick={() => remove(l.productId)}
+                    className="cart-line__remove"
                     aria-label="Eliminar"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-faint)', padding: 4 }}
                   >
