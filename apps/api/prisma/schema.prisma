@@ -155,6 +155,7 @@ model ProductImage {
 
 model Request {
   id         String        @id @default(cuid())
+  number     Int           @unique @default(autoincrement()) // human order number: 1, 2, 3…
   clientId   String
   client     User          @relation("ClientRequests", fields: [clientId], references: [id])
   status     RequestStatus @default(DRAFT)

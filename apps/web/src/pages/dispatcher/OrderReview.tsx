@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, Loader2, MapPin, X } from 'lucide-react'
 import { WorkerHeader } from '../../components/WorkerHeader'
 import { StatusTag } from '../../components/StatusTag'
-import { shortDate } from '../../lib/format'
+import { orderLabel, shortDate } from '../../lib/format'
 import { getApiErrorMessage } from '../../lib/api'
 import {
   useCompleteReview,
@@ -58,8 +58,7 @@ export default function DispatcherOrderReview() {
               <ArrowLeft size={14} /> Pedidos
             </button>
             <div style={{ flex: 1 }}>
-              <span className="label">Pedido</span>
-              <h1 style={{ fontSize: 26, marginTop: 2 }}>#{order.id.slice(-8)}</h1>
+              <h1 style={{ fontSize: 26 }}>{orderLabel(order)}</h1>
             </div>
             <StatusTag status={order.status} />
           </div>

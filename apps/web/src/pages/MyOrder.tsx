@@ -2,7 +2,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Ban, Check, ChevronRight, CircleCheck, Clock, Loader2, X } from 'lucide-react'
 import { Header } from '../components/Header'
 import { StatusTag } from '../components/StatusTag'
-import { shortDate } from '../lib/format'
+import { orderLabel, shortDate } from '../lib/format'
 import {
   useClientDecision,
   useRequestDetail,
@@ -58,7 +58,7 @@ function OrdersList({ onSelect }: { onSelect: (id: string) => void }) {
                   style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 16, padding: '18px 20px', alignItems: 'center', cursor: 'pointer', textAlign: 'left', border: '1px solid var(--line)' }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>Pedido #{o.id.slice(-8)}</div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 600 }}>{orderLabel(o)}</div>
                     <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>
                       {o._count.items} {o._count.items === 1 ? 'producto' : 'productos'}, {shortDate(o.createdAt)}
                     </div>
@@ -151,8 +151,7 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
       <div className="container grid-2col" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 32, padding: '32px 24px 64px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div className="card" style={{ padding: 24 }}>
-            <span className="label">Pedido</span>
-            <h2 style={{ fontSize: 26, marginTop: 4 }}>#{order.id.slice(-8)}</h2>
+            <h2 style={{ fontSize: 26 }}>{orderLabel(order)}</h2>
             <p className="muted" style={{ marginTop: 4, fontSize: 14 }}>
               {order.items.length} {order.items.length === 1 ? 'producto' : 'productos'},{' '}
               {order.items.reduce((s, it) => s + it.quantity, 0)} unidades
@@ -261,7 +260,7 @@ function TerminalView({ order, onBack }: { order: OrderRequest; onBack: () => vo
         <h2 style={{ fontSize: 30, marginBottom: 8 }}>{v.title}</h2>
         <p className="muted" style={{ marginBottom: 12 }}>{v.sub}</p>
         <p className="faint" style={{ fontSize: 13 }}>
-          Pedido #{order.id.slice(-8)}
+          {orderLabel(order)}
           {order.decidedAt ? `, ${shortDate(order.decidedAt)}` : ''}
         </p>
       </div>

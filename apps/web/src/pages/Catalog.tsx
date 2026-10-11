@@ -128,7 +128,7 @@ export default function Catalog() {
         <section style={{ background: 'var(--green-deep)', color: 'white', padding: '40px 0' }}>
           <div className="container">
             <span className="label" style={{ color: 'var(--amber-bright)', letterSpacing: '0.15em' }}>
-              Importadora Cobo
+              Catálogo Kyodo
             </span>
             <h1 style={{ fontSize: 44, marginTop: 8, color: 'white' }}>
               El amigo del agricultor

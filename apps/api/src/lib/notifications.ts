@@ -27,11 +27,11 @@ export async function notifyNewOrder(requestId: string): Promise<void> {
     })
     const to = workers.map((w) => w.email).filter(Boolean)
     if (to.length === 0) return
-    const subject = `Nuevo pedido de ${request.client.fullName}`
+    const subject = `Nuevo pedido ${request.number} de ${request.client.fullName}`
     const html = layout(
       'Nuevo pedido recibido',
       `${request.client.fullName} envió un pedido con ${request._count.items} producto(s). Revisa la disponibilidad y responde.`,
-      { label: 'Ver pedidos', href: `${appUrl()}/despacho` },
+      { label: 'Ver pedido', href: `${appUrl()}/despacho/pedido/${request.id}` },
     )
     // Send per-recipient so one blocked/invalid address doesn't drop the rest
     // (and the owner still receives while Resend is in test mode).
@@ -48,7 +48,7 @@ export async function notifyProformaReady(requestId: string): Promise<void> {
     if (!request) return
     await sendEmail({
       to: request.client.email,
-      subject: 'Tu pedido fue revisado',
+      subject: `Tu pedido ${request.number} fue revisado`,
       html: layout(
         'Disponibilidad confirmada',
         'El despachador revisó tu pedido. Entra para ver qué está disponible y decidir si aceptas, rechazas o cancelas.',

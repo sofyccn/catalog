@@ -41,6 +41,8 @@ export interface RequestHistory {
 }
 export interface OrderRequest {
   id: string
+  /** Sequential order number shown to people (1, 2, 3…). */
+  number: number
   status: RequestStatus
   notes: string | null
   createdAt: string
@@ -53,6 +55,7 @@ export interface OrderRequest {
 }
 export interface RequestSummary {
   id: string
+  number: number
   status: RequestStatus
   notes: string | null
   createdAt: string

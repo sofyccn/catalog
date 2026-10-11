@@ -13,9 +13,8 @@ export function LandingShell({ mode, children }: { mode: Mode; children: ReactNo
       <div className="kl-split">
         <section className="kl-hero">
           <div className="kl-hero__inner">
-            <Lockup theme="dark" size={42} tagline sub />
+            <Lockup theme="dark" size={64} tagline sub />
             <div className="kl-hero__content">
-              <Kicker onDark>El amigo del agricultor</Kicker>
               <h1 className="kl-display">
                 Todo lo que tu finca necesita,<br />
                 en un solo catálogo.
@@ -42,12 +41,12 @@ export function LandingShell({ mode, children }: { mode: Mode; children: ReactNo
 
       <section className="kl-how">
         <div className="kl-section-head">
-          <Kicker>Cómo funciona</Kicker>
+          <Kicker>¿Cómo funciona?</Kicker>
           <h2 className="kl-h2">
             Pedir es así de simple
           </h2>
           <p className="kl-section-sub">
-            No es una tienda en línea. Es el catálogo de Cobo donde armas tu pedido
+            Es el catálogo de Kyodo donde armas tu pedido
             y nosotros lo confirmamos contigo.
           </p>
         </div>

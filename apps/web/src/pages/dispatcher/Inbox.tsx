@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { WorkerHeader } from '../../components/WorkerHeader'
 import { StatusTag } from '../../components/StatusTag'
-import { shortDate } from '../../lib/format'
+import { orderLabel, shortDate } from '../../lib/format'
 import { useRequests, type RequestStatus, type RequestSummary } from '../../api/requests'
 
 type TabKey = 'TODOS' | 'SENT' | 'IN_REVIEW' | 'REVIEWED' | 'CLOSED'
@@ -116,7 +116,7 @@ export default function DispatcherInbox() {
                   className="order-row"
                   onClick={() => navigate(`/despacho/pedido/${o.id}`)}
                 >
-                  <span className="order-row__id">#{o.id.slice(-8)}</span>
+                  <span className="order-row__id">{orderLabel(o)}</span>
                   <div className="order-row__client">
                     <div className="order-row__name">{o.client?.fullName ?? 'Sin nombre'}</div>
                     <div className="order-row__email">{o.client?.email}</div>
