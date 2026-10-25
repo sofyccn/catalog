@@ -62,6 +62,8 @@ export interface Facet {
 export interface ProductPage {
   data: Product[]
   total: number
+  /** Admin list only: products with / without photos for the current search. */
+  imageCounts?: { withImages: number; withoutImages: number }
   page: number
   limit: number
   facets: {

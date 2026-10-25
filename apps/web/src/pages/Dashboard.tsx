@@ -10,12 +10,13 @@ import { usePendingUsers } from '../api/users'
 /** Admin landing hub: interactive tiles linking to the main areas, with live counts. */
 export default function Dashboard() {
   const me = useMe()
-  const products = useAdminProducts()
+  const products = useAdminProducts(undefined, 'all')
   const newOrders = useRequests('SENT')
   const pending = usePendingUsers()
 
   const firstName = me.data?.fullName?.split(' ')[0] ?? ''
-  const productCount = products.data?.total
+  const productCount = products.data?.pages[0]?.total
+  const withoutPhotos = products.data?.pages[0]?.imageCounts?.withoutImages
   const newCount = newOrders.data?.length ?? 0
   const pendingCount = pending.data?.length ?? 0
 
@@ -49,7 +50,11 @@ export default function Dashboard() {
               tint="var(--green-tint)"
               title="Catálogo"
               desc="Crea y edita productos, categorías, marcas y modelos."
-              meta={productCount === undefined ? 'Cargando…' : `${productCount} producto${productCount === 1 ? '' : 's'}`}
+              meta={
+                productCount === undefined
+                  ? 'Cargando…'
+                  : `${productCount} producto${productCount === 1 ? '' : 's'}${withoutPhotos ? `, ${withoutPhotos} sin fotos` : ''}`
+              }
             />
             <Tile
               to="/despacho"

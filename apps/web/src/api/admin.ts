@@ -1,19 +1,33 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { Category, Product, ProductPage } from './catalog'
 
-/** Admin product list — includes inactive products. The API uses `q` for
- *  full-text search across name / code / description; we pass it through
- *  from the admin search input. */
-export function useAdminProducts(search?: string) {
-  return useQuery({
-    queryKey: ['admin-products', { q: search ?? '' }],
-    queryFn: async () =>
+export type PhotoFilter = 'all' | 'without' | 'with'
+
+const ADMIN_PAGE_SIZE = 100
+
+/** Admin product list: every product (inactive included), sorted by name and
+ *  loaded in pages of 100 so the whole catalog is reachable. `q` searches
+ *  name / code / description; `photos` narrows to products with or without photos. */
+export function useAdminProducts(search: string | undefined, photos: PhotoFilter) {
+  return useInfiniteQuery({
+    queryKey: ['admin-products', { q: search ?? '', photos }],
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) =>
       (
         await api.get<ProductPage>('/products', {
-          params: { includeInactive: true, limit: 200, ...(search ? { q: search } : {}) },
+          params: {
+            includeInactive: true,
+            sort: 'name',
+            page: pageParam,
+            limit: ADMIN_PAGE_SIZE,
+            ...(search ? { q: search } : {}),
+            ...(photos !== 'all' ? { hasImages: photos === 'with' } : {}),
+          },
         })
       ).data,
+    getNextPageParam: (last) => (last.page * last.limit < last.total ? last.page + 1 : undefined),
+    placeholderData: keepPreviousData,
   })
 }
 

@@ -46,7 +46,7 @@ async function trimBlankBorder(source: Buffer): Promise<Buffer> {
 }
 
 /** Resize + store one source buffer in all sizes and persist the row. */
-async function storeImage(productId: string, rawSource: Buffer, position: number) {
+export async function storeImage(productId: string, rawSource: Buffer, position: number) {
   const source = await trimBlankBorder(rawSource)
   const base = `products/${productId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const urls: Record<string, string> = {}

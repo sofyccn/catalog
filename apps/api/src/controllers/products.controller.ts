@@ -33,6 +33,8 @@ const listQuery = z.object({
   isNew: z.coerce.boolean().optional(),
   isCompleteUnit: z.enum(['true', 'false']).optional(),
   includeInactive: z.coerce.boolean().optional(),
+  // Admin: 'false' = only products without any photo (to find what still needs one).
+  hasImages: z.enum(['true', 'false']).optional(),
   sort: z.enum(['relevance', 'price-asc', 'price-desc', 'newest', 'name']).default('relevance'),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(200).default(20),
@@ -94,6 +96,7 @@ export async function list(req: Request, res: Response) {
         : undefined,
     isNew: p.isNew ? { isNew: true } : undefined,
     unit: p.isCompleteUnit ? { isCompleteUnit: p.isCompleteUnit === 'true' } : undefined,
+    images: p.hasImages ? (p.hasImages === 'true' ? { images: { some: {} } } : { images: { none: {} } }) : undefined,
     search: searchAnd.length ? { AND: searchAnd } : undefined,
   }
   // Compose where from all fragments; for facets, exclude that facet's own dimension
@@ -134,6 +137,14 @@ export async function list(req: Request, res: Response) {
       prisma.partType.findMany({ where: { active: true }, select: { id: true, name: true } }),
     ])
 
+  // Admin list: how many of the matching products have / lack photos (ignoring the photo filter itself).
+  const imageCounts = showAll
+    ? await Promise.all([
+        prisma.product.count({ where: { AND: [compose('images'), { images: { some: {} } }] } }),
+        prisma.product.count({ where: { AND: [compose('images'), { images: { none: {} } }] } }),
+      ]).then(([withImages, withoutImages]) => ({ withImages, withoutImages }))
+    : undefined
+
   const nameMap = (arr: { id: string; name: string }[]) => new Map(arr.map((x) => [x.id, x.name]))
   const catNames = nameMap(cats)
   const brandNames = nameMap(brandList)
@@ -156,6 +167,7 @@ export async function list(req: Request, res: Response) {
     total,
     page: p.page,
     limit: p.limit,
+    imageCounts,
     facets: {
       categories: facetFrom(catGroups as Group[], 'categoryId', catNames),
       brands: facetFrom(brandGroups as Group[], 'brandId', brandNames, 'Genérico'),

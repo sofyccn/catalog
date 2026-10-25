@@ -15,6 +15,7 @@ import {
 } from '../../api/catalog'
 import {
   useAdminProducts,
+  type PhotoFilter,
   useDeleteImage,
   useDeleteProduct,
   useSaveProduct,
@@ -38,7 +39,8 @@ export default function CatalogManager() {
   const categoriesQ = useCategories()
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounced(search.trim(), 300)
-  const productsQ = useAdminProducts(debouncedSearch.length >= 2 ? debouncedSearch : undefined)
+  const [photos, setPhotos] = useState<PhotoFilter>('all')
+  const productsQ = useAdminProducts(debouncedSearch.length >= 2 ? debouncedSearch : undefined, photos)
   const toggleProduct = useToggleProduct()
   const deleteProduct = useDeleteProduct()
   const [editing, setEditing] = useState<Product | 'new' | null>(null)
@@ -57,7 +59,10 @@ export default function CatalogManager() {
     return m
   }, [categories])
 
-  const products = productsQ.data?.data ?? []
+  const pages = productsQ.data?.pages ?? []
+  const products = pages.flatMap((pg) => pg.data)
+  const total = pages[0]?.total ?? 0
+  const imageCounts = pages[0]?.imageCounts
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -81,11 +86,6 @@ export default function CatalogManager() {
         <div className="container" style={{ padding: '24px 24px 64px' }}>
           <div className="card admin-products" style={{ padding: 0, alignSelf: 'flex-start' }}>
             <div className="admin-products__head" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <span className="label" style={{ flexShrink: 0 }}>
-                {debouncedSearch && productsQ.data
-                  ? `${products.length} de ${productsQ.data.total} productos`
-                  : `${productsQ.data?.total ?? 0} productos`}
-              </span>
               <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
                 <Search
                   size={16}
@@ -123,6 +123,32 @@ export default function CatalogManager() {
               {productsQ.isFetching && !productsQ.isLoading && (
                 <Loader2 className="animate-spin" size={16} style={{ color: 'var(--ink-faint)' }} />
               )}
+              <div className="photo-filter" role="tablist" aria-label="Filtrar por fotos">
+                {(
+                  [
+                    ['all', 'Todos', imageCounts ? imageCounts.withImages + imageCounts.withoutImages : undefined],
+                    ['without', 'Sin fotos', imageCounts?.withoutImages],
+                    ['with', 'Con fotos', imageCounts?.withImages],
+                  ] as const
+                ).map(([key, label, count]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={photos === key}
+                    onClick={() => setPhotos(key)}
+                    className={`photo-filter__btn ${photos === key ? 'is-active' : ''}`}
+                  >
+                    {label}
+                    {count !== undefined && <span className="photo-filter__count">{count}</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="admin-products__summary">
+              {productsQ.isLoading
+                ? 'Cargando…'
+                : `Mostrando ${products.length} de ${total} ${total === 1 ? 'producto' : 'productos'}`}
             </div>
             {productsQ.isLoading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
@@ -130,9 +156,11 @@ export default function CatalogManager() {
               </div>
             ) : products.length === 0 ? (
               <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-soft)' }}>
-                {debouncedSearch
-                  ? `No hay productos que contengan "${debouncedSearch}".`
-                  : 'Aún no hay productos.'}
+                {photos === 'without' && !debouncedSearch
+                  ? 'Todos los productos tienen fotos.'
+                  : debouncedSearch
+                    ? `No hay productos que contengan "${debouncedSearch}".`
+                    : 'Aún no hay productos.'}
               </div>
             ) : (
               products.map((p) => (
@@ -146,6 +174,9 @@ export default function CatalogManager() {
                       {p.brand && <span className="muted" style={{ fontSize: 12 }}>{p.brand.name}</span>}
                       {p.isNew && (
                         <span className="tag" style={{ background: 'var(--amber-bright)', color: 'var(--ink)', fontSize: 10 }}>NUEVO</span>
+                      )}
+                      {!p.images?.length && (
+                        <span className="tag" style={{ background: 'var(--red-tint)', color: 'var(--red)' }}>Sin foto</span>
                       )}
                     </div>
                     <div className="admin-row__name">{p.name}</div>
@@ -181,6 +212,14 @@ export default function CatalogManager() {
                   </div>
                 </div>
               ))
+            )}
+            {productsQ.hasNextPage && (
+              <div style={{ padding: 16, textAlign: 'center', borderTop: '1px solid var(--line-soft)' }}>
+                <button className="btn ghost" onClick={() => productsQ.fetchNextPage()} disabled={productsQ.isFetchingNextPage}>
+                  {productsQ.isFetchingNextPage ? <Loader2 className="animate-spin" size={16} /> : null}
+                  Cargar más ({total - products.length} restantes)
+                </button>
+              </div>
             )}
           </div>
         </div>

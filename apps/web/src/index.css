@@ -348,6 +348,16 @@ h1, h2, h3, h4 {
 /* === Admin: product row list ============================================== */
 .admin-products { overflow: hidden; }
 .admin-products__head { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.admin-products__summary { padding: 10px 20px; font-size: 13px; color: var(--ink-soft); border-bottom: 1px solid var(--line-soft); }
+.photo-filter { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--bg-tint); border: 1px solid var(--line); }
+.photo-filter__btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: none; background: transparent; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.photo-filter__btn.is-active { background: var(--green); color: #fff; }
+.photo-filter__count { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: rgba(0,0,0,0.07); }
+.photo-filter__btn.is-active .photo-filter__count { background: rgba(255,255,255,0.22); }
+@media (max-width: 700px) {
+  .photo-filter { width: 100%; }
+  .photo-filter__btn { flex: 1; justify-content: center; padding: 6px 8px; }
+}
 .admin-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--line-soft); }
 .admin-row:last-child { border-bottom: none; }
 .admin-row__thumb { width: 56px; height: 56px; flex-shrink: 0; border-radius: 8px; overflow: hidden; }
