@@ -201,8 +201,8 @@ function ProductDetail({ id }: { id?: string }) {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
                   {related.data.map((p) => (
                     <Link key={p.id} to={`/producto/${p.id}`} className="card" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <div style={{ aspectRatio: '4 / 3', borderRadius: 10, overflow: 'hidden' }}>
-                        <ProductThumb src={p.images?.[0]?.urlThumb} alt={p.name} />
+                      <div style={{ aspectRatio: '4 / 3', borderRadius: 10, overflow: 'hidden', background: '#fff' }}>
+                        <ProductThumb src={p.images?.[0]?.urlFull ?? p.images?.[0]?.urlMedium} alt={p.name} fit="contain" />
                       </div>
                       <span className="tag muted" style={{ width: 'fit-content' }}>{p.code}</span>
                       <h3 style={{ fontSize: 14, lineHeight: 1.25 }}>{p.name}</h3>

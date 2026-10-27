@@ -10,6 +10,7 @@ import {
   type OrderRequest,
   type RequestItemDetail,
 } from '../api/requests'
+import { getApiErrorMessage } from '../lib/api'
 
 /** /pedido lists the client's orders; /pedido/:id shows one. Being a real URL
  *  means ScrollToTop runs, the phone's back button works, and emails can link
@@ -96,6 +97,11 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
   const reject = useClientDecision('reject')
   const cancel = useClientDecision('cancel')
   const busy = approve.isPending || reject.isPending || cancel.isPending
+  const decisionError = approve.error ?? reject.error ?? cancel.error
+  const onCancel = () => {
+    if (!window.confirm('¿Cancelar este pedido? El despachador dejará de revisarlo.')) return
+    cancel.mutate(order.id)
+  }
 
   if (order.status === 'APPROVED' || order.status === 'REJECTED' || order.status === 'CANCELLED') {
     return <TerminalView order={order} onBack={onBack} />
@@ -175,6 +181,9 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
         </div>
 
         <aside className="sticky-aside" style={{ position: 'sticky', top: 96, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {decisionError && (
+            <p role="alert" style={{ color: 'var(--red)', fontSize: 13 }}>{getApiErrorMessage(decisionError)}</p>
+          )}
           {reviewed ? (
             <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <h3 style={{ fontSize: 18, marginBottom: 4 }}>¿Cómo continuamos?</h3>
@@ -184,7 +193,7 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
               <button onClick={() => reject.mutate(order.id)} disabled={busy} className="btn ghost" style={{ padding: 12 }}>
                 <X size={16} /> Rechazar
               </button>
-              <button onClick={() => cancel.mutate(order.id)} disabled={busy} className="btn" style={{ padding: 10, fontSize: 13, background: 'transparent', color: 'var(--red)', fontWeight: 500 }}>
+              <button onClick={onCancel} disabled={busy} className="btn" style={{ padding: 10, fontSize: 13, background: 'transparent', color: 'var(--red)', fontWeight: 500 }}>
                 Cancelar pedido
               </button>
             </div>
@@ -193,7 +202,7 @@ function OrderView({ order, onBack }: { order: OrderRequest; onBack: () => void 
               <p className="muted" style={{ fontSize: 14, marginBottom: 12 }}>
                 Tu pedido está en manos del despachador. Puedes cancelarlo mientras tanto.
               </p>
-              <button onClick={() => cancel.mutate(order.id)} disabled={busy} className="btn ghost" style={{ width: '100%', color: 'var(--red)' }}>
+              <button onClick={onCancel} disabled={busy} className="btn ghost" style={{ width: '100%', color: 'var(--red)' }}>
                 Cancelar pedido
               </button>
             </div>

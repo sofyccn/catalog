@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Filter, Loader2, Plus, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Filter, Loader2, Plus, Search, X } from 'lucide-react'
 import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
 import {
@@ -40,10 +40,11 @@ export default function Catalog() {
   const minPrice = searchParams.get('min') ?? ''
   const maxPrice = searchParams.get('max') ?? ''
   const isNew = searchParams.get('nuevos') === '1'
-  const limit = Math.max(PAGE_SIZE, Number(searchParams.get('n')) || PAGE_SIZE)
+  const page = Math.max(1, Math.floor(Number(searchParams.get('pagina'))) || 1)
+  const resultsRef = useRef<HTMLDivElement>(null)
 
-  /** Apply filter changes to the URL. Any filter change resets paging (drops `n`). */
-  const updateParams = (changes: Record<string, string | string[] | null>, keepPaging = false) => {
+  /** Apply filter changes to the URL. Any filter change goes back to page 1. */
+  const updateParams = (changes: Record<string, string | string[] | null>) => {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
@@ -52,7 +53,7 @@ export default function Catalog() {
           if (Array.isArray(value)) value.forEach((v) => next.append(key, v))
           else if (value) next.set(key, value)
         }
-        if (!keepPaging) next.delete('n')
+        next.delete('pagina')
         return next
       },
       { replace: true },
@@ -62,6 +63,19 @@ export default function Catalog() {
   const setMinPrice = (v: string) => updateParams({ min: v || null })
   const setMaxPrice = (v: string) => updateParams({ max: v || null })
   const setIsNew = (v: boolean) => updateParams({ nuevos: v ? '1' : null })
+
+  /** Pages are real history entries (back returns to the previous page); scroll
+   *  to the top of the results, just under the sticky header. */
+  const goToPage = (p: number) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (p <= 1) next.delete('pagina')
+      else next.set('pagina', String(p))
+      return next
+    })
+    const el = resultsRef.current
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 90, behavior: 'smooth' })
+  }
 
   // The search box is typed into locally and committed to the URL once the user pauses.
   const [query, setQueryInput] = useState(debouncedQuery)
@@ -85,14 +99,17 @@ export default function Catalog() {
     maxPrice: maxPrice ? Number(maxPrice) : undefined,
     isNew: isNew || undefined,
     isCompleteUnit: productMode === 'machines' ? 'true' : productMode === 'parts' ? 'false' : undefined,
-    page: 1,
-    limit,
+    page,
+    limit: PAGE_SIZE,
   }
   const productsQ = useProducts(params)
 
   const data = productsQ.data
   const products = data?.data ?? []
   const total = data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const firstShown = total ? (page - 1) * PAGE_SIZE + 1 : 0
+  const lastShown = Math.min(page * PAGE_SIZE, total)
   const facets = data?.facets
 
   const onAdd = (p: Product) => {
@@ -207,12 +224,17 @@ export default function Catalog() {
           </aside>
 
           {/* Results */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
+          <div ref={resultsRef}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, gap: '4px 12px', flexWrap: 'wrap' }}>
               <h2 style={{ fontSize: 22 }}>
                 {total} {total === 1 ? 'producto' : 'productos'}
                 {productsQ.isFetching && <Loader2 className="animate-spin" size={16} style={{ color: 'var(--ink-faint)', marginLeft: 10, verticalAlign: 'middle' }} />}
               </h2>
+              {totalPages > 1 && (
+                <span className="muted" style={{ fontSize: 13 }}>
+                  Mostrando {firstShown} a {lastShown}, página {page} de {totalPages}
+                </span>
+              )}
             </div>
 
             {/* Active chips */}
@@ -251,13 +273,7 @@ export default function Catalog() {
               </div>
             )}
 
-            {products.length < total && (
-              <div style={{ textAlign: 'center', marginTop: 28 }}>
-                <button className="btn ghost" onClick={() => updateParams({ n: String(limit + PAGE_SIZE) }, true)} disabled={productsQ.isFetching}>
-                  Cargar más ({total - products.length} restantes)
-                </button>
-              </div>
-            )}
+            {totalPages > 1 && <Pagination page={page} totalPages={totalPages} onChange={goToPage} />}
           </div>
         </div>
       </main>
@@ -342,8 +358,8 @@ function NewBadge() {
 function ProductCard({ product, onAdd, onOpen }: ItemProps) {
   return (
     <div onClick={onOpen} className="card" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer' }}>
-      <div style={{ aspectRatio: '4 / 3', borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
-        <ProductThumb src={product.images?.[0]?.urlThumb} alt={product.name} />
+      <div style={{ aspectRatio: '4 / 3', borderRadius: 10, overflow: 'hidden', position: 'relative', background: '#fff' }}>
+        <ProductThumb src={product.images?.[0]?.urlFull ?? product.images?.[0]?.urlMedium} alt={product.name} fit="contain" />
         {product.isNew && <span style={{ position: 'absolute', top: 8, left: 8 }}><NewBadge /></span>}
       </div>
       <div className="row" style={{ gap: 8 }}>
@@ -361,5 +377,48 @@ function ProductCard({ product, onAdd, onOpen }: ItemProps) {
         </button>
       </div>
     </div>
+  )
+}
+
+/** Page numbers to show: always first and last, plus a window around the
+ *  current page, with null marking a gap ("…"). */
+function pageItems(page: number, total: number): (number | null)[] {
+  const keep = new Set([1, total, page - 1, page, page + 1].filter((p) => p >= 1 && p <= total))
+  const sorted = [...keep].sort((a, b) => a - b)
+  const out: (number | null)[] = []
+  sorted.forEach((p, i) => {
+    if (i > 0 && p - sorted[i - 1]! > 1) out.push(null)
+    out.push(p)
+  })
+  return out
+}
+
+function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (p: number) => void }) {
+  return (
+    <nav className="pagination" aria-label="Páginas del catálogo">
+      <button type="button" className="btn ghost sm" disabled={page <= 1} onClick={() => onChange(page - 1)}>
+        <ChevronLeft size={16} /> <span className="pagination__label">Anterior</span>
+      </button>
+      <div className="pagination__pages">
+        {pageItems(page, totalPages).map((p, i) =>
+          p === null ? (
+            <span key={`gap-${i}`} className="pagination__gap">…</span>
+          ) : (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onChange(p)}
+              aria-current={p === page ? 'page' : undefined}
+              className={`pagination__num ${p === page ? 'is-active' : ''}`}
+            >
+              {p}
+            </button>
+          ),
+        )}
+      </div>
+      <button type="button" className="btn ghost sm" disabled={page >= totalPages} onClick={() => onChange(page + 1)}>
+        <span className="pagination__label">Siguiente</span> <ChevronRight size={16} />
+      </button>
+    </nav>
   )
 }

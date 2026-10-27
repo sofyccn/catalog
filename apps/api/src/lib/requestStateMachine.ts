@@ -7,14 +7,14 @@ import { badRequest } from './errors.js'
  *
  *   DRAFT     → SENT, CANCELLED
  *   SENT      → IN_REVIEW, CANCELLED
- *   IN_REVIEW → REVIEWED
+ *   IN_REVIEW → REVIEWED, CANCELLED  (the client may still cancel while it's being reviewed)
  *   REVIEWED  → APPROVED, REJECTED, CANCELLED
  *   APPROVED / REJECTED / CANCELLED → (terminal)
  */
 const TRANSITIONS: Record<RequestStatus, RequestStatus[]> = {
   DRAFT: ['SENT', 'CANCELLED'],
   SENT: ['IN_REVIEW', 'CANCELLED'],
-  IN_REVIEW: ['REVIEWED'],
+  IN_REVIEW: ['REVIEWED', 'CANCELLED'],
   REVIEWED: ['APPROVED', 'REJECTED', 'CANCELLED'],
   APPROVED: [],
   REJECTED: [],
