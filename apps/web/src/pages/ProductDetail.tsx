@@ -6,6 +6,7 @@ import { Header } from '../components/Header'
 import { ProductThumb } from '../components/ProductThumb'
 import { formatPrice, useProduct, useRelatedProducts } from '../api/catalog'
 import { useCart } from '../stores/cart'
+import { CasilleroTag } from '../components/CasilleroTag'
 
 /** Keyed by id so photo selection and quantity reset when jumping to a
  *  related product (same route, so React would otherwise keep the state). */
@@ -152,6 +153,7 @@ function ProductDetail({ id }: { id?: string }) {
                 {product.category && <span className="muted" style={{ fontSize: 13 }}>{product.category.name}</span>}
                 {product.partType && <span className="muted" style={{ fontSize: 13 }}>{product.partType.name}</span>}
                 {product.brand && <span className="muted" style={{ fontSize: 13 }}>{product.brand.name}</span>}
+                {product.warehouseLocation && <CasilleroTag value={product.warehouseLocation} />}
               </div>
               <h1 style={{ fontSize: 38, marginTop: 0 }}>{product.name}</h1>
 

@@ -42,6 +42,7 @@ export interface ProductInput {
   isCompleteUnit?: boolean
   isNew?: boolean
   active?: boolean
+  warehouseLocation?: string | null
   modelIds?: string[]
 }
 

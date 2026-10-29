@@ -49,6 +49,8 @@ export interface Product {
   active: boolean
   isNew: boolean
   isCompleteUnit: boolean
+  /** Warehouse casillero. Only sent to admin / dispatcher; clients never receive it. */
+  warehouseLocation?: string | null
   brand?: { id: string; name: string } | null
   partType?: { id: string; name: string } | null
   images?: ProductImage[]

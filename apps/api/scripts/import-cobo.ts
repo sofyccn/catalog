@@ -7,6 +7,14 @@
  *   pnpm --filter api exec tsx scripts/import-cobo.ts /home/sofia/Documents/catalog/SOFI.xls
  *
  * Upserts categories, part types, brands, and products. Idempotent on `code`.
+ *
+ * Safe flags for re-importing a newer sheet into a live catalog:
+ *   --solo-nuevos  only create products whose code doesn't exist yet; existing
+ *                  products are left exactly as they are (admin edits, archived state).
+ *   --casilleros   with --solo-nuevos, also update just the CASILLERO of existing
+ *                  products when the sheet has a different one.
+ *   --excluir=A,B  skip these codes (e.g. rows that duplicate an existing product
+ *                  under another code).
  */
 import { read, utils } from 'xlsx'
 import { readFileSync } from 'node:fs'
@@ -237,7 +245,7 @@ function mapRow(r: {
   }
 
   const partTypeSlug = detectPartType(r.nombre)
-  const cas = norm(r.casillero).replace(/-+$/, '').replace(/-+/, '-').trim()
+  const cas = norm(r.casillero).replace(/-+$/, '').replace(/-+/, '-').trim().toUpperCase()
   const warehouseLocation = cas.length > 0 ? cas : null
 
   return {
@@ -258,6 +266,11 @@ function mapRow(r: {
 async function main() {
   const filePath = resolve(process.argv[2] ?? '')
   const dryRun = process.argv.includes('--dry-run')
+  const onlyNew = process.argv.includes('--solo-nuevos')
+  const updateCasilleros = process.argv.includes('--casilleros')
+  const excluded = new Set(
+    (process.argv.find((a) => a.startsWith('--excluir='))?.slice('--excluir='.length) ?? '').split(',').map((c) => c.trim()).filter(Boolean),
+  )
   if (!filePath || filePath === resolve('')) {
     console.error('Usage: tsx scripts/import-cobo.ts <path-to-xls> [--dry-run]')
     process.exit(1)
@@ -288,9 +301,9 @@ async function main() {
   const mapped: MappedRow[] = []
   const seen = new Set<string>()
   for (const r of rows) {
-    const codigo = norm(r[colCode])
+    const codigo = norm(r[colCode]).replace(/^[^A-Za-z0-9]+/, '')
     const nombre = norm(r[colName])
-    if (!codigo || !nombre || seen.has(codigo)) continue
+    if (!codigo || !nombre || seen.has(codigo) || excluded.has(codigo)) continue
     seen.add(codigo)
     const m = mapRow({
       codigo, nombre,
@@ -311,6 +324,24 @@ async function main() {
   console.log(`Categorías necesarias:   ${categorySlugs.length}`)
   console.log(`Marcas necesarias:       ${brandNames.length}`)
   console.log(`Tipos de parte:          ${partTypeSlugs.length}`)
+  console.log()
+
+  // Plan against the live DB: which rows are new, and which existing casilleros change.
+  const existingRows = await prisma.product.findMany({ select: { code: true, warehouseLocation: true } })
+  const existingByCode = new Map(existingRows.map((p) => [p.code, p.warehouseLocation]))
+  const newRows = mapped.filter((m) => !existingByCode.has(m.code))
+  const casilleroChanges = mapped.filter(
+    (m) => existingByCode.has(m.code) && m.warehouseLocation && existingByCode.get(m.code) !== m.warehouseLocation,
+  )
+  console.log(`Ya existen (por código):  ${mapped.length - newRows.length}`)
+  console.log(`Nuevos:                   ${newRows.length}`)
+  console.log(`Casilleros distintos:     ${casilleroChanges.length}`)
+  if (onlyNew) console.log(`Modo: solo nuevos${updateCasilleros ? ' + actualizar casilleros' : ''} (los existentes no se tocan)`)
+  console.log()
+  for (const m of dryRun ? newRows : newRows.slice(0, 40)) console.log(`  NUEVO  ${m.code.padEnd(18)} ${m.name}  $${m.price}  [${m.categorySlug ?? 'sin categoría'}] casillero=${m.warehouseLocation ?? '-'}`)
+  if (!dryRun && newRows.length > 40) console.log(`  …y ${newRows.length - 40} más`)
+  for (const m of casilleroChanges.slice(0, 15)) console.log(`  CASILLERO ${m.code.padEnd(18)} ${existingByCode.get(m.code) ?? '-'} -> ${m.warehouseLocation}`)
+  if (casilleroChanges.length > 15) console.log(`  …y ${casilleroChanges.length - 15} más`)
   console.log()
 
   if (dryRun) {
@@ -397,6 +428,13 @@ async function main() {
 
     try {
       const existing = await prisma.product.findUnique({ where: { code: m.code } })
+      if (existing && onlyNew) {
+        if (updateCasilleros && m.warehouseLocation && existing.warehouseLocation !== m.warehouseLocation) {
+          await prisma.product.update({ where: { code: m.code }, data: { warehouseLocation: m.warehouseLocation } })
+          updated++
+        }
+        continue
+      }
       if (existing) {
         await prisma.product.update({ where: { code: m.code }, data })
         updated++

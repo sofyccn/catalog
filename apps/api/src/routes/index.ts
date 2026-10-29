@@ -5,7 +5,11 @@ import { categoriesRouter } from './categories.routes.js'
 import { productsRouter } from './products.routes.js'
 import { requestsRouter } from './requests.routes.js'
 import { brandsRouter, partTypesRouter, equipmentModelsRouter } from './taxonomy.routes.js'
+import { hideStaffFields } from '../middleware/hideStaffFields.js'
 export const apiRouter = Router()
+
+// Clients never receive staff-only fields such as the warehouse casillero.
+apiRouter.use(hideStaffFields)
 
 apiRouter.get('/health', (_req, res) => {
   res.json({ status: 'ok' })

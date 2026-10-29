@@ -11,6 +11,7 @@ import {
   type ProductQuery,
 } from '../api/catalog'
 import { useCart } from '../stores/cart'
+import { CasilleroTag } from '../components/CasilleroTag'
 
 const PAGE_SIZE = 24
 
@@ -365,6 +366,7 @@ function ProductCard({ product, onAdd, onOpen }: ItemProps) {
       <div className="row" style={{ gap: 8 }}>
         <span className="tag muted">{product.code}</span>
         {product.brand && <span className="muted" style={{ fontSize: 12 }}>{product.brand.name}</span>}
+        {product.warehouseLocation && <CasilleroTag value={product.warehouseLocation} />}
       </div>
       <h3 style={{ fontSize: 15, lineHeight: 1.25 }}>{product.name}</h3>
       {product.compatibleModels && product.compatibleModels.length > 0 && (

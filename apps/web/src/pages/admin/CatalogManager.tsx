@@ -25,6 +25,7 @@ import {
   type ProductInput,
 } from '../../api/admin'
 import { getApiErrorMessage } from '../../lib/api'
+import { CasilleroTag } from '../../components/CasilleroTag'
 
 function useDebounced<T>(value: T, ms = 300): T {
   const [v, setV] = useState(value)
@@ -183,6 +184,7 @@ export default function CatalogManager() {
                     <div className="admin-row__meta">
                       {categoriesById.get(p.categoryId)?.name ?? 'Sin categoría'}
                       {p.partType && `, ${p.partType.name}`}
+                      {p.warehouseLocation && <span style={{ marginLeft: 8 }}><CasilleroTag value={p.warehouseLocation} /></span>}
                     </div>
                   </div>
                   <div className="admin-row__price">{formatPrice(p.price)}</div>
@@ -247,6 +249,7 @@ function ProductFormModal({ product, categories, onClose }: { product: Product |
   const [isCompleteUnit, setIsCompleteUnit] = useState(product?.isCompleteUnit ?? false)
   const [isNew, setIsNew] = useState(product?.isNew ?? false)
   const [active, setActive] = useState(product?.active ?? true)
+  const [casillero, setCasillero] = useState(product?.warehouseLocation ?? '')
   const models = useEquipmentModels(categoryId || undefined)
 
   // The product's current compatible models, matched by code once the list loads.
@@ -278,6 +281,7 @@ function ProductFormModal({ product, categories, onClose }: { product: Product |
       isCompleteUnit,
       isNew,
       active,
+      warehouseLocation: casillero.trim() || null,
       modelIds: editedModelIds ?? (product ? undefined : []),
     }
     save.mutate({ id: product?.id, input }, { onSuccess: onClose })
@@ -311,12 +315,17 @@ function ProductFormModal({ product, categories, onClose }: { product: Product |
               </select>
             </Field>
           </div>
-          <Field label="Marca">
-            <select className="input" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
-              <option value="">Genérico / Sin marca</option>
-              {brands.data?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </Field>
+          <div className="form-2col">
+            <Field label="Marca">
+              <select className="input" value={brandId} onChange={(e) => setBrandId(e.target.value)}>
+                <option value="">Genérico / Sin marca</option>
+                {brands.data?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Casillero (solo personal)">
+              <input className="input" value={casillero} onChange={(e) => setCasillero(e.target.value.toUpperCase())} placeholder="Ej. A28" maxLength={40} />
+            </Field>
+          </div>
 
           <Field label="Modelos compatibles">
             {models.data && models.data.length > 0 ? (

@@ -231,6 +231,8 @@ const createSchema = z.object({
   isCompleteUnit: z.boolean().optional(),
   isNew: z.boolean().optional(),
   active: z.boolean().optional(),
+  // Warehouse casillero (e.g. "A28"); empty clears it. Staff-only: hidden from clients.
+  warehouseLocation: z.string().trim().max(40).transform((v) => v || null).nullable().optional(),
   modelIds: z.array(z.string()).optional(),
 })
 
@@ -253,6 +255,7 @@ export async function create(req: Request, res: Response) {
       isCompleteUnit: input.isCompleteUnit ?? false,
       isNew: input.isNew ?? false,
       active: input.active ?? true,
+      warehouseLocation: input.warehouseLocation ?? null,
       ...(input.modelIds?.length
         ? { compatibleModels: { create: input.modelIds.map((modelId) => ({ modelId })) } }
         : {}),
